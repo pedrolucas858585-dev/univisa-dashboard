@@ -69,12 +69,12 @@ def delete_user(uid):
         get_users.clear(); return True
     except: return False
 
-@st.cache_data(ttl=60)
-def get_uploads():
+def get_uploads(usuario_id=None, is_admin=False):
     try:
-        return supabase.table("uploads")\
-            .select("id,nome_arquivo,ano,criado_em")\
-            .order("criado_em", desc=True).execute().data or []
+        query = supabase.table("uploads").select("id,nome_arquivo,ano,criado_em,usuario_id")
+        if not is_admin and usuario_id:
+            query = query.eq("usuario_id", usuario_id)
+        return query.order("criado_em", desc=True).execute().data or []
     except: return []
 
 def save_upload(nome, ano, dados, uid):
@@ -84,7 +84,6 @@ def save_upload(nome, ano, dados, uid):
             "dados": json.dumps(dados), "usuario_id": uid,
             "criado_em": datetime.now().isoformat()
         }).execute()
-        get_uploads.clear()
         return res.data[0]["id"] if res.data else None
     except Exception as e:
         st.error(f"Erro: {e}"); return None
@@ -102,7 +101,7 @@ def load_upload(upload_id):
 def delete_upload(upload_id):
     try:
         supabase.table("uploads").delete().eq("id", upload_id).execute()
-        get_uploads.clear(); return True
+        return True
     except: return False
 
 # ─── PARSER ──────────────────────────────────────────────────────────────────
