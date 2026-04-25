@@ -10,7 +10,7 @@ st.set_page_config(
     page_title="UNIVISA — Dashboard de Receitas",
     page_icon="🟠",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
 # ─── SUPABASE ────────────────────────────────────────────────────────────────
@@ -244,7 +244,7 @@ section[data-testid="stSidebar"] .stButton > button:hover {{
 
 # ─── SESSION ─────────────────────────────────────────────────────────────────
 for k, v in [("user",None),("dados",[]),("ano","2025"),("arquivo",None),
-             ("dark_mode",True),("aba","dashboard")]:
+             ("dark_mode",False),("aba","dashboard")]:
     if k not in st.session_state:
         st.session_state[k] = v
 
@@ -391,8 +391,7 @@ with tb_user:
     """, unsafe_allow_html=True)
 
 # ── SIDEBAR ──────────────────────────────────────────────────────────────────
-if st.session_state.get("sidebar_open", False):
-    with st.sidebar:
+with st.sidebar:
         st.markdown(f"""
         <div style="padding:14px 0 18px;border-bottom:1px solid rgba(242,101,34,.3);margin-bottom:14px;">
           <div style="display:flex;align-items:center;gap:10px;">
