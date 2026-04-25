@@ -305,6 +305,8 @@ if "ano" not in st.session_state:
     st.session_state.ano = "2025"
 if "arquivo" not in st.session_state:
     st.session_state.arquivo = None
+if "sidebar_open" not in st.session_state:
+    st.session_state.sidebar_open = False
 
 # ─── LOGIN ────────────────────────────────────────────────────────────────────
 if st.session_state.user is None:
@@ -376,59 +378,89 @@ is_admin = user.get("role") == "admin"
 # TOPBAR — full width dark bar
 nome_usuario = user.get('nome') or user['login']
 iniciais = nome_usuario[:2].upper()
-st.markdown(f"""
-<div style="background:linear-gradient(90deg,#1a0a00,#3d1500);
-            border-bottom:2.5px solid #F26522;
-            padding:0 28px;height:60px;
-            display:flex;align-items:center;justify-content:space-between;
-            margin:-0.5rem -1rem 1rem -1rem;
-            box-shadow:0 4px 20px rgba(242,101,34,.2);">
-  <div style="display:flex;align-items:center;gap:12px;">
-    <div style="width:36px;height:36px;background:#F26522;border-radius:9px;
-                display:flex;align-items:center;justify-content:center;
-                font-size:15px;font-weight:800;color:white;">UV</div>
-    <span style="font-size:17px;font-weight:700;color:white;letter-spacing:-.3px;">
-      UNIVISA <span style="color:#F26522;">Receitas</span>
-    </span>
-    <span style="background:rgba(242,101,34,.2);color:#FF8C42;font-size:11px;font-weight:700;
-                 padding:3px 11px;border-radius:20px;border:1px solid rgba(242,101,34,.3);">
-      {st.session_state.ano}
-    </span>
-  </div>
-  <div style="display:flex;align-items:center;gap:10px;">
-    <div style="background:#F26522;width:30px;height:30px;border-radius:50%;
-                display:flex;align-items:center;justify-content:center;
-                font-size:12px;font-weight:700;color:white;">{iniciais}</div>
-    <span style="font-size:13px;font-weight:600;color:white;">{nome_usuario}</span>
-  </div>
-</div>
-""", unsafe_allow_html=True)
 
-# SIDEBAR
-with st.sidebar:
-    # Header do painel
-    nome_usuario = user.get("nome") or user["login"]
-    iniciais = nome_usuario[:2].upper()
+tb_col1, tb_col2, tb_col3 = st.columns([0.08, 3, 1.2])
+with tb_col1:
+    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+    if st.button("☰", key="menu_btn", help="Abrir painel lateral"):
+        st.session_state.sidebar_open = not st.session_state.sidebar_open
+        st.rerun()
+
+with tb_col2:
     st.markdown(f"""
-    <div style="padding:16px 0 20px;border-bottom:1px solid rgba(242,101,34,.3);margin-bottom:16px;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-        <div style="width:40px;height:40px;background:#F26522;border-radius:10px;
-                    display:flex;align-items:center;justify-content:center;
-                    font-size:16px;font-weight:800;color:white;">{iniciais}</div>
-        <div>
-          <div style="font-size:13px;font-weight:700;color:white;">{nome_usuario}</div>
-          <div style="font-size:10px;color:#FF8C42;text-transform:uppercase;letter-spacing:.5px;">
-            {"Admin" if is_admin else "Usuário"}
-          </div>
-        </div>
-      </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:8px 0;">
+      <div style="width:36px;height:36px;background:#F26522;border-radius:9px;
+                  display:flex;align-items:center;justify-content:center;
+                  font-size:15px;font-weight:800;color:white;">UV</div>
+      <span style="font-size:17px;font-weight:700;color:white;letter-spacing:-.3px;">
+        UNIVISA <span style="color:#F26522;">Receitas</span>
+      </span>
+      <span style="background:rgba(242,101,34,.2);color:#FF8C42;font-size:11px;font-weight:700;
+                   padding:3px 11px;border-radius:20px;border:1px solid rgba(242,101,34,.3);">
+        {st.session_state.ano}
+      </span>
     </div>
     """, unsafe_allow_html=True)
 
-    if st.button("🚪 Sair", use_container_width=True):
-        st.session_state.user = None
-        st.session_state.dados = []
-        st.rerun()
+with tb_col3:
+    st.markdown(f"""
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:8px 0;">
+      <div style="background:#F26522;width:32px;height:32px;border-radius:50%;
+                  display:flex;align-items:center;justify-content:center;
+                  font-size:13px;font-weight:700;color:white;">{iniciais}</div>
+      <span style="font-size:13px;font-weight:600;color:white;">{nome_usuario}</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+st.markdown("""
+<style>
+header[data-testid="stHeader"] { display: none !important; }
+.stApp { background: linear-gradient(180deg,#1a0a00 0%,#0d0500 100%) !important; }
+div[data-testid="stToolbar"] { display: none !important; }
+/* Style menu button */
+div[data-testid="column"]:first-child .stButton > button {
+  background: rgba(242,101,34,.2) !important;
+  border: 1px solid #F26522 !important;
+  color: #F26522 !important;
+  font-size: 20px !important;
+  padding: 4px 10px !important;
+  border-radius: 8px !important;
+  line-height: 1 !important;
+}
+div[data-testid="column"]:first-child .stButton > button:hover {
+  background: #F26522 !important;
+  color: white !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+st.divider()
+
+# SIDEBAR — custom panel
+if st.session_state.sidebar_open:
+    with st.sidebar:
+      nome_usuario_sb = user.get("nome") or user["login"]
+      iniciais_sb = nome_usuario_sb[:2].upper()
+      st.markdown(f"""
+      <div style="padding:16px 0 20px;border-bottom:1px solid rgba(242,101,34,.3);margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+          <div style="width:40px;height:40px;background:#F26522;border-radius:10px;
+                      display:flex;align-items:center;justify-content:center;
+                      font-size:16px;font-weight:800;color:white;">{iniciais_sb}</div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:white;">{nome_usuario_sb}</div>
+            <div style="font-size:10px;color:#FF8C42;text-transform:uppercase;letter-spacing:.5px;">
+              {"Admin" if is_admin else "Usuário"}
+            </div>
+          </div>
+        </div>
+      </div>
+      """, unsafe_allow_html=True)
+
+      if st.button("🚪 Sair", use_container_width=True):
+          st.session_state.user = None
+          st.session_state.dados = []
+          st.rerun()
 
     st.markdown("""
     <div style="font-size:10px;font-weight:700;color:#F26522;text-transform:uppercase;
