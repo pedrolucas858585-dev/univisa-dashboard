@@ -13,6 +13,15 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Fundo laranja durante carregamento
+st.markdown("""
+<style>
+body { background: linear-gradient(135deg,#1a0a00,#3d1500,#F26522) !important; }
+.stApp { background: linear-gradient(135deg,#1a0a00,#3d1500,#F26522) !important; }
+[data-testid="stSkeleton"] { background: rgba(242,101,34,.25) !important; border-radius:8px !important; }
+</style>
+""", unsafe_allow_html=True)
+
 # ─── SUPABASE ────────────────────────────────────────────────────────────────
 @st.cache_resource
 def get_supabase() -> Client:
@@ -180,6 +189,18 @@ html, body, [class*="css"], .stApp {{
   font-family: 'Sora', sans-serif !important;
   background-color: {BG} !important;
   color: {TEXT} !important;
+}}
+
+/* Tela de carregamento inicial */
+div[data-testid="stAppViewContainer"] > div:first-child {{
+  background: linear-gradient(135deg, #1a0a00 0%, #3d1500 50%, #F26522 100%) !important;
+}}
+div[data-testid="stSkeleton"] {{
+  background: rgba(242,101,34,.2) !important;
+  border-radius: 8px !important;
+}}
+div[data-testid="stSpinner"] > div {{
+  border-top-color: #F26522 !important;
 }}
 .block-container {{ padding: 0 1.2rem 2rem !important; max-width: 100% !important; }}
 
@@ -735,3 +756,4 @@ st.markdown(f"""
   <span><strong style="color:{TEXT}">Atualizado:</strong> {datetime.now().strftime('%d/%m/%Y %H:%M')}</span>
 </div>
 """, unsafe_allow_html=True)
+
