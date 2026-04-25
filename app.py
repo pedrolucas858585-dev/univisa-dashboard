@@ -222,76 +222,46 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
-:root {
-  --orange: #F26522;
-  --orange-dark: #C84E00;
-  --orange-pale: #FFF3EC;
-}
-html, body, [class*="css"] {
+html, body, [class*="css"], .stApp {
   font-family: 'Sora', sans-serif !important;
+  background-color: #111111 !important;
+  color: #F0F0F0 !important;
 }
-.stApp {
-  background: #FAFAFA;
+.block-container { padding-top: 0 !important; max-width: 100% !important; padding-left: 1rem !important; padding-right: 1rem !important; }
+header[data-testid="stHeader"] { display: none !important; }
+#MainMenu { visibility: hidden !important; }
+footer { display: none !important; }
+/* Full dark background including outside block */
+.stApp > div:first-child { background: #111111 !important; }
+section[data-testid="stSidebar"] { background: #1A1A1A !important; border-right: 1px solid #2A2A2A; }
+section[data-testid="stSidebar"] * { color: #CCC !important; }
+div[data-baseweb="input"] input, div[data-baseweb="select"] div, div[data-baseweb="textarea"] textarea {
+  background: #1E1E1E !important; color: #F0F0F0 !important; border-color: #333 !important;
 }
-/* KPI cards */
+.stButton > button {
+  background: #F26522 !important; color: white !important; border: none !important;
+  border-radius: 8px !important; font-family: 'Sora', sans-serif !important; font-weight: 600 !important;
+}
+.stButton > button:hover { background: #C84E00 !important; }
+details { background: #1A1A1A !important; border: 1px solid #2A2A2A !important; border-radius: 10px !important; }
+details summary { color: #F0F0F0 !important; }
+div[data-testid="stFileUploader"] { background: #1A1A1A !important; border: 2px dashed #F26522 !important; border-radius: 10px !important; }
+hr { border-color: #2A2A2A !important; }
 .kpi-card {
-  background: white;
-  border: 1.5px solid #EFEFEF;
-  border-radius: 14px;
-  padding: 18px 20px;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  background: #1A1A1A; border: 1.5px solid #2A2A2A; border-radius: 14px;
+  padding: 18px 20px; position: relative; overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,.4);
 }
-.kpi-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  background: #F26522;
-}
-.kpi-card.highlight {
-  background: #F26522;
-  border-color: #F26522;
-}
-.kpi-card.highlight::before {
-  background: rgba(255,255,255,.3);
-}
-.kpi-label {
-  font-size: 10px;
-  font-weight: 700;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: .5px;
-  margin-bottom: 6px;
-}
+.kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #F26522; }
+.kpi-card.highlight { background: #F26522; border-color: #F26522; }
+.kpi-card.highlight::before { background: rgba(255,255,255,.3); }
+.kpi-label { font-size: 10px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
 .kpi-card.highlight .kpi-label { color: rgba(255,255,255,.75); }
-.kpi-value {
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -.5px;
-  color: #111;
-}
+.kpi-value { font-size: 22px; font-weight: 700; letter-spacing: -.5px; color: #F0F0F0; }
 .kpi-card.highlight .kpi-value { color: white; }
-.kpi-sub {
-  font-size: 11px;
-  color: #AAA;
-  margin-top: 3px;
-}
+.kpi-sub { font-size: 11px; color: #555; margin-top: 3px; }
 .kpi-card.highlight .kpi-sub { color: rgba(255,255,255,.65); }
-/* Header */
-.dash-header {
-  background: white;
-  border-bottom: 2.5px solid #F26522;
-  padding: 14px 28px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 12px rgba(242,101,34,.08);
-}
-/* Streamlit tweaks */
-.block-container { padding-top: 1rem !important; }
+label[data-testid="stWidgetLabel"] p { color: #AAA !important; font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: .5px !important; }
 div[data-testid="stMetric"] label { font-family: 'Sora', sans-serif !important; }
 </style>
 """, unsafe_allow_html=True)
@@ -308,33 +278,49 @@ if "arquivo" not in st.session_state:
 
 # ─── LOGIN ────────────────────────────────────────────────────────────────────
 if st.session_state.user is None:
-    col1, col2, col3 = st.columns([1, 1.2, 1])
+    # Full page dark gradient background
+    st.markdown("""
+    <style>
+    .stApp { background: linear-gradient(135deg, #1a0a00 0%, #3d1500 50%, #F26522 100%) !important; }
+    div[data-testid="stForm"] {
+        background: white !important; border-radius: 20px !important;
+        padding: 10px 20px 20px !important; border: none !important;
+    }
+    div[data-testid="stForm"] input { background: #F7F7F7 !important; color: #111 !important; border: 1.5px solid #E0E0E0 !important; border-radius: 8px !important; }
+    div[data-testid="stForm"] label p { color: #666 !important; font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; }
+    div[data-testid="stForm"] button { background: #F26522 !important; font-size: 15px !important; font-weight: 700 !important; padding: 12px !important; border-radius: 8px !important; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns([1, 1.1, 1])
     with col2:
         st.markdown("""
-        <div style="background:linear-gradient(135deg,#1a0a00,#3d1500,#F26522);
-                    border-radius:20px;padding:40px;margin-top:60px;
-                    box-shadow:0 16px 48px rgba(0,0,0,.3);">
-          <div style="background:white;border-radius:14px;padding:36px 32px;">
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
-              <div style="width:44px;height:44px;background:#F26522;border-radius:11px;
-                          display:flex;align-items:center;justify-content:center;
-                          font-size:18px;font-weight:800;color:white;">UV</div>
-              <div style="font-size:20px;font-weight:700;">UNIVISA <span style="color:#F26522">Receitas</span></div>
+        <div style="margin-top:80px;margin-bottom:24px;text-align:center;">
+          <div style="display:inline-flex;align-items:center;gap:14px;background:white;
+                      padding:20px 32px;border-radius:18px;box-shadow:0 8px 32px rgba(0,0,0,.25);">
+            <div style="width:52px;height:52px;background:#F26522;border-radius:13px;
+                        display:flex;align-items:center;justify-content:center;
+                        font-size:20px;font-weight:800;color:white;flex-shrink:0;">UV</div>
+            <div>
+              <div style="font-size:22px;font-weight:800;color:#111;letter-spacing:-.5px;">
+                UNIVISA <span style="color:#F26522">Receitas</span>
+              </div>
+              <div style="font-size:12px;color:#888;margin-top:2px;">Dashboard Financeiro</div>
             </div>
-            <p style="font-size:13px;color:#666;margin-bottom:8px;">
-              Acesse com seu login e senha para visualizar o dashboard financeiro.
-            </p>
           </div>
         </div>
         """, unsafe_allow_html=True)
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-        
+
         with st.form("login_form"):
+            st.markdown("""
+            <p style="font-size:13px;color:#666;margin-bottom:4px;text-align:center;">
+              Acesse com seu login e senha para visualizar o dashboard financeiro.
+            </p>
+            """, unsafe_allow_html=True)
             login_input = st.text_input("Login", placeholder="Ex: joao.silva")
             senha_input = st.text_input("Senha", type="password", placeholder="••••••••")
-            submitted = st.form_submit_button("→ Entrar", use_container_width=True)
-            
+            submitted = st.form_submit_button("Entrar", use_container_width=True)
+
             if submitted:
                 if login_input and senha_input:
                     u = login(login_input, senha_input)
@@ -345,9 +331,9 @@ if st.session_state.user is None:
                         st.error("Usuário ou senha incorretos.")
                 else:
                     st.warning("Preencha login e senha.")
-        
+
         st.markdown("""
-        <p style="text-align:center;font-size:11px;color:#AAA;margin-top:12px;">
+        <p style="text-align:center;font-size:11px;color:rgba(255,255,255,.5);margin-top:20px;letter-spacing:.5px;">
           ASSOCIAÇÃO DO ENSINO SUPERIOR DA VITÓRIA STO ANTÃO
         </p>
         """, unsafe_allow_html=True)
@@ -357,36 +343,36 @@ if st.session_state.user is None:
 user = st.session_state.user
 is_admin = user.get("role") == "admin"
 
-# TOPBAR
-col_brand, col_right = st.columns([3, 1])
-with col_brand:
-    st.markdown(f"""
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;">
-      <div style="width:34px;height:34px;background:#F26522;border-radius:9px;
-                  display:flex;align-items:center;justify-content:center;
-                  font-size:14px;font-weight:800;color:white;">UV</div>
-      <span style="font-size:17px;font-weight:700;">
-        UNIVISA <span style="color:#F26522">Receitas</span>
-      </span>
-      <span style="background:#FFF3EC;color:#C84E00;font-size:11px;font-weight:700;
-                   padding:3px 11px;border-radius:20px;border:1px solid #FFD5B8;">
-        {st.session_state.ano}
-      </span>
-    </div>
-    """, unsafe_allow_html=True)
-with col_right:
-    st.markdown(f"""
-    <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:10px 0;">
-      <div style="background:#F26522;width:26px;height:26px;border-radius:50%;
-                  display:flex;align-items:center;justify-content:center;
-                  font-size:11px;font-weight:700;color:white;">
-        {(user.get('nome') or user['login'])[:2].upper()}
-      </div>
-      <span style="font-size:12px;font-weight:600;">{user.get('nome') or user['login']}</span>
-    </div>
-    """, unsafe_allow_html=True)
-
-st.divider()
+# TOPBAR — full width dark bar
+nome_usuario = user.get('nome') or user['login']
+iniciais = nome_usuario[:2].upper()
+st.markdown(f"""
+<div style="background:linear-gradient(90deg,#1a0a00,#3d1500);
+            border-bottom:2.5px solid #F26522;
+            padding:0 28px;height:60px;
+            display:flex;align-items:center;justify-content:space-between;
+            margin:-0.5rem -1rem 1rem -1rem;
+            box-shadow:0 4px 20px rgba(242,101,34,.2);">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div style="width:36px;height:36px;background:#F26522;border-radius:9px;
+                display:flex;align-items:center;justify-content:center;
+                font-size:15px;font-weight:800;color:white;">UV</div>
+    <span style="font-size:17px;font-weight:700;color:white;letter-spacing:-.3px;">
+      UNIVISA <span style="color:#F26522;">Receitas</span>
+    </span>
+    <span style="background:rgba(242,101,34,.2);color:#FF8C42;font-size:11px;font-weight:700;
+                 padding:3px 11px;border-radius:20px;border:1px solid rgba(242,101,34,.3);">
+      {st.session_state.ano}
+    </span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div style="background:#F26522;width:30px;height:30px;border-radius:50%;
+                display:flex;align-items:center;justify-content:center;
+                font-size:12px;font-weight:700;color:white;">{iniciais}</div>
+    <span style="font-size:13px;font-weight:600;color:white;">{nome_usuario}</span>
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
 # SIDEBAR
 with st.sidebar:
@@ -575,10 +561,10 @@ with col_g1:
                      color_discrete_sequence=colors)
         fig.update_layout(
             showlegend=False, height=300, margin=dict(l=0,r=0,t=0,b=0),
-            plot_bgcolor="white", paper_bgcolor="white",
+            plot_bgcolor="#1A1A1A", paper_bgcolor="#1A1A1A",
             font_family="Sora",
-            yaxis=dict(autorange="reversed", tickfont=dict(size=10)),
-            xaxis=dict(tickfont=dict(size=10), gridcolor="#F0F0F0")
+            yaxis=dict(autorange="reversed", tickfont=dict(size=10, color="#AAA")),
+            xaxis=dict(tickfont=dict(size=10), gridcolor="#2A2A2A")
         )
         fig.update_traces(marker_color=colors)
         st.plotly_chart(fig, use_container_width=True)
@@ -603,7 +589,8 @@ with col_g2:
         fig2.update_layout(
             height=300, margin=dict(l=0,r=0,t=0,b=0),
             legend=dict(font=dict(size=10), orientation="v"),
-            paper_bgcolor="white", font_family="Sora"
+            paper_bgcolor="#1A1A1A", font_family="Sora",
+            legend=dict(font=dict(color="#AAA"))
         )
         st.plotly_chart(fig2, use_container_width=True)
     else:
@@ -622,10 +609,10 @@ fig3 = go.Figure(go.Scatter(
 ))
 fig3.update_layout(
     height=180, margin=dict(l=0,r=0,t=0,b=0),
-    plot_bgcolor="white", paper_bgcolor="white",
+    plot_bgcolor="#1A1A1A", paper_bgcolor="#1A1A1A",
     font_family="Sora",
-    xaxis=dict(gridcolor="#F0F0F0", tickfont=dict(size=11)),
-    yaxis=dict(gridcolor="#F0F0F0", tickfont=dict(size=10)),
+    xaxis=dict(gridcolor="#2A2A2A", tickfont=dict(size=11, color="#AAA")),
+    yaxis=dict(gridcolor="#2A2A2A", tickfont=dict(size=10, color="#AAA")),
     showlegend=False
 )
 st.plotly_chart(fig3, use_container_width=True)
