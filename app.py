@@ -310,51 +310,85 @@ dark     = st.session_state.dark_mode
 tema_ico = "☀️" if dark else "🌙"
 
 # ── TOPBAR ───────────────────────────────────────────────────────────────────
-# Topbar full-width HTML + botões streamlit sobrepostos
-st.markdown(f"""
-<div style="background:linear-gradient(90deg,#1a0a00,#3d1500);
-            border-bottom:2.5px solid #F26522;
-            padding:0 20px; height:56px;
-            display:flex; align-items:center; justify-content:space-between;
-            margin: 0 -1rem; margin-bottom: 0;
-            box-shadow: 0 4px 20px rgba(242,101,34,.2);">
-  <div style="display:flex;align-items:center;gap:14px;">
-    <div style="width:36px;height:36px;background:#F26522;border-radius:9px;
-                display:flex;align-items:center;justify-content:center;
-                font-size:15px;font-weight:800;color:white;flex-shrink:0;">UV</div>
-    <span style="font-size:17px;font-weight:700;color:white;letter-spacing:-.3px;">
-      UNIVISA <span style="color:#F26522;">Receitas</span>
-    </span>
-    <span style="background:rgba(242,101,34,.2);color:#FF8C42;font-size:11px;font-weight:700;
-                 padding:3px 11px;border-radius:20px;border:1px solid rgba(242,101,34,.3);">
-      {st.session_state.ano}
-    </span>
-  </div>
-  <div style="display:flex;align-items:center;gap:10px;">
-    <div style="background:#F26522;width:32px;height:32px;border-radius:50%;
-                display:flex;align-items:center;justify-content:center;
-                font-size:13px;font-weight:700;color:white;">{iniciais}</div>
-    <span style="font-size:13px;font-weight:600;color:white;">{nome}</span>
-  </div>
-</div>
+# TOPBAR — botões reais do Streamlit estilizados como topbar
+st.markdown("""
+<style>
+/* Topbar container */
+div[data-testid="stHorizontalBlock"]:first-of-type {
+  background: linear-gradient(90deg,#1a0a00,#3d1500) !important;
+  border-bottom: 2.5px solid #F26522 !important;
+  padding: 8px 20px !important;
+  margin: -0.5rem -1rem 0.8rem -1rem !important;
+  box-shadow: 0 4px 20px rgba(242,101,34,.2) !important;
+  align-items: center !important;
+}
+/* Todos os botões na topbar */
+div[data-testid="stHorizontalBlock"]:first-of-type .stButton > button {
+  background: rgba(255,255,255,.08) !important;
+  border: 1px solid rgba(255,255,255,.2) !important;
+  color: white !important;
+  border-radius: 10px !important;
+  font-size: 16px !important;
+  padding: 6px 12px !important;
+  height: 38px !important;
+  min-width: 42px !important;
+  transition: all .2s !important;
+}
+div[data-testid="stHorizontalBlock"]:first-of-type .stButton > button:hover {
+  background: #F26522 !important;
+  border-color: #F26522 !important;
+  transform: scale(1.05) !important;
+}
+</style>
 """, unsafe_allow_html=True)
 
-# Botões funcionais abaixo da topbar
-tb1, tb2, tb3, tb_esp = st.columns([0.5, 0.5, 0.5, 8])
-with tb1:
+tb_menu, tb_brand, tb_esp, tb_tema, tb_db, tb_user = st.columns([0.4, 3.5, 2, 0.4, 0.4, 1.2])
+
+with tb_menu:
     if st.button("☰", key="menu_btn", help="Painel lateral"):
         st.session_state.sidebar_open = not st.session_state.get("sidebar_open", False)
         st.rerun()
-with tb2:
-    if st.button(tema_ico, key="tema_btn", help="Alternar tema claro/escuro"):
+
+with tb_brand:
+    aba_ativa = st.session_state.aba
+    st.markdown(f"""
+    <div style="display:flex;align-items:center;gap:12px;height:38px;">
+      <div style="width:34px;height:34px;background:#F26522;border-radius:9px;
+                  display:flex;align-items:center;justify-content:center;
+                  font-size:14px;font-weight:800;color:white;flex-shrink:0;">UV</div>
+      <span style="font-size:16px;font-weight:700;color:white;letter-spacing:-.3px;">
+        UNIVISA <span style="color:#FF8C42;">Receitas</span>
+      </span>
+      <span style="background:rgba(242,101,34,.25);color:#FF8C42;font-size:10px;font-weight:700;
+                   padding:3px 10px;border-radius:20px;border:1px solid rgba(242,101,34,.4);">
+        {st.session_state.ano}
+      </span>
+      {"<span style='background:#F26522;color:white;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;margin-left:4px;'>🗄 Banco de Dados</span>" if aba_ativa=="banco" else ""}
+    </div>
+    """, unsafe_allow_html=True)
+
+with tb_tema:
+    tema_label = "☀️" if dark else "🌙"
+    tema_tip = "Modo claro" if dark else "Modo escuro"
+    if st.button(tema_label, key="tema_btn", help=tema_tip):
         st.session_state.dark_mode = not dark
         st.rerun()
-with tb3:
-    if st.button("🗄️", key="db_btn", help="Banco de Dados"):
-        st.session_state.aba = "banco" if st.session_state.aba != "banco" else "dashboard"
+
+with tb_db:
+    db_ativo = st.session_state.aba == "banco"
+    if st.button("🗄", key="db_btn", help="Banco de Dados — Planilhas salvas"):
+        st.session_state.aba = "banco" if not db_ativo else "dashboard"
         st.rerun()
 
-st.markdown(f"<div style='margin-bottom:8px;'></div>", unsafe_allow_html=True)
+with tb_user:
+    st.markdown(f"""
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;height:38px;">
+      <div style="background:#F26522;width:30px;height:30px;border-radius:50%;
+                  display:flex;align-items:center;justify-content:center;
+                  font-size:12px;font-weight:700;color:white;flex-shrink:0;">{iniciais}</div>
+      <span style="font-size:12px;font-weight:600;color:white;white-space:nowrap;">{nome}</span>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ── SIDEBAR ──────────────────────────────────────────────────────────────────
 if st.session_state.get("sidebar_open", False):
