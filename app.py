@@ -29,7 +29,14 @@ MESES_SH = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','D
 def hash_senha(s): return hashlib.sha256(s.encode()).hexdigest()
 def fmt_brl(v):
     if not v or v == 0: return "—"
-    return f"R$ {v:,.2f}".replace(",","X").replace(".",",").replace("X",".")
+    try:
+        v = float(v)
+        inteiro = int(v)
+        centavos = round((v - inteiro) * 100)
+        s = f"{inteiro:,}".replace(",",".")
+        return f"R$ {s},{centavos:02d}"
+    except:
+        return "—"
 def fmt_short(v):
     if not v or v == 0: return "—"
     if v >= 1e6: return f"R${v/1e6:.1f}M"
@@ -701,11 +708,16 @@ with g1:
     if top10:
         df_t = pd.DataFrame(top10, columns=["Curso","Receita"])
         colors = [f"rgba(242,101,34,{1-i*0.08})" for i in range(len(df_t))]
-        fig = go.Figure(go.Bar(x=df_t["Receita"], y=df_t["Curso"], orientation="h", marker_color=colors, marker_line_width=0))
+        fig = go.Figure(go.Bar(
+            x=df_t["Receita"], y=df_t["Curso"],
+            orientation="h", marker_color=colors, marker_line_width=0,
+            hovertemplate="<b>%{y}</b><br>R$ %{x:,.2f}<extra></extra>"
+        ))
         fig.update_layout(showlegend=False, height=280, margin=dict(l=0,r=0,t=0,b=0),
             plot_bgcolor=CHART, paper_bgcolor=CHART, font_family="Sora",
             yaxis=dict(autorange="reversed", tickfont=dict(size=10,color=TEXT2)),
-            xaxis=dict(tickfont=dict(size=10,color=TEXT2), gridcolor=GRID))
+            xaxis=dict(tickfont=dict(size=10,color=TEXT2), gridcolor=GRID,
+                       tickformat=",.0f", tickprefix="R$"))
         st.plotly_chart(fig, use_container_width=True, config={"displayModeBar":False})
 
 with g2:
@@ -716,8 +728,11 @@ with g2:
             by_area[r["area"]] = by_area.get(r["area"],0)+gv(r)
     if by_area:
         pal = ["#F26522","#FF8C42","#C84E00","#FFB380","#E05A00","#FFD5B8","#A03C00","#FFC4A0"]
-        fig2 = go.Figure(go.Pie(labels=list(by_area.keys()), values=list(by_area.values()),
-            hole=.6, marker_colors=pal[:len(by_area)], textfont_size=10))
+        fig2 = go.Figure(go.Pie(
+            labels=list(by_area.keys()), values=list(by_area.values()),
+            hole=.6, marker_colors=pal[:len(by_area)], textfont_size=10,
+            hovertemplate="<b>%{label}</b><br>R$ %{value:,.2f}<br>%{percent}<extra></extra>"
+        ))
         fig2.update_layout(height=280, margin=dict(l=0,r=0,t=0,b=0),
             legend=dict(font=dict(size=10,color=TEXT2), orientation="v"),
             paper_bgcolor=CHART, font_family="Sora")
@@ -725,9 +740,12 @@ with g2:
 
 st.markdown(f'<p style="font-size:13px;font-weight:700;color:{TEXT};margin-bottom:4px;">Evolução Mensal</p>', unsafe_allow_html=True)
 vals_mes = [sum(r["meses"].get(m,0) for r in cursos) for m in MESES]
-fig3 = go.Figure(go.Scatter(x=MESES_SH, y=vals_mes, mode="lines+markers",
+fig3 = go.Figure(go.Scatter(
+    x=MESES_SH, y=vals_mes, mode="lines+markers",
     line=dict(color="#F26522",width=2.5), fill="tozeroy", fillcolor="rgba(242,101,34,.08)",
-    marker=dict(color="#F26522",size=6)))
+    marker=dict(color="#F26522",size=6),
+    hovertemplate="<b>%{x}</b><br>R$ %{y:,.2f}<extra></extra>"
+))
 fig3.update_layout(height=160, margin=dict(l=0,r=0,t=0,b=0),
     plot_bgcolor=CHART, paper_bgcolor=CHART, font_family="Sora", showlegend=False,
     xaxis=dict(gridcolor=GRID, tickfont=dict(size=11,color=TEXT2)),
