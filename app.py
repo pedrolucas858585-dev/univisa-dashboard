@@ -224,7 +224,7 @@ st.markdown("""
 
 html, body, [class*="css"], .stApp {
   font-family: 'Sora', sans-serif !important;
-  background-color: #111111 !important;
+  background-color: #1C0A00 !important;
   color: #F0F0F0 !important;
 }
 .block-container { padding-top: 0 !important; max-width: 100% !important; padding-left: 1rem !important; padding-right: 1rem !important; }
@@ -233,33 +233,33 @@ header[data-testid="stHeader"] { display: none !important; }
 footer { display: none !important; }
 /* Full dark background including outside block */
 .stApp > div:first-child { background: #111111 !important; }
-section[data-testid="stSidebar"] { background: #1A1A1A !important; border-right: 1px solid #2A2A2A; }
+section[data-testid="stSidebar"] { background: #2A0E00 !important; border-right: 1px solid #5A2000; }
 section[data-testid="stSidebar"] * { color: #CCC !important; }
 div[data-baseweb="input"] input, div[data-baseweb="select"] div, div[data-baseweb="textarea"] textarea {
-  background: #1E1E1E !important; color: #F0F0F0 !important; border-color: #333 !important;
+  background: #3A1500 !important; color: #F0F0F0 !important; border-color: #7A3500 !important;
 }
 .stButton > button {
   background: #F26522 !important; color: white !important; border: none !important;
   border-radius: 8px !important; font-family: 'Sora', sans-serif !important; font-weight: 600 !important;
 }
 .stButton > button:hover { background: #C84E00 !important; }
-details { background: #1A1A1A !important; border: 1px solid #2A2A2A !important; border-radius: 10px !important; }
+details { background: #2A0E00 !important; border: 1px solid #5A2000 !important; border-radius: 10px !important; }
 details summary { color: #F0F0F0 !important; }
-div[data-testid="stFileUploader"] { background: #1A1A1A !important; border: 2px dashed #F26522 !important; border-radius: 10px !important; }
-hr { border-color: #2A2A2A !important; }
+div[data-testid="stFileUploader"] { background: #2A0E00 !important; border: 2px dashed #F26522 !important; border-radius: 10px !important; }
+hr { border-color: #5A2000 !important; }
 .kpi-card {
-  background: #1A1A1A; border: 1.5px solid #2A2A2A; border-radius: 14px;
+  background: #2A0E00; border: 1.5px solid #5A2A00; border-radius: 14px;
   padding: 18px 20px; position: relative; overflow: hidden;
   box-shadow: 0 4px 16px rgba(0,0,0,.4);
 }
 .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #F26522; }
 .kpi-card.highlight { background: #F26522; border-color: #F26522; }
 .kpi-card.highlight::before { background: rgba(255,255,255,.3); }
-.kpi-label { font-size: 10px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+.kpi-label { font-size: 10px; font-weight: 700; color: #FF9966; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
 .kpi-card.highlight .kpi-label { color: rgba(255,255,255,.75); }
 .kpi-value { font-size: 22px; font-weight: 700; letter-spacing: -.5px; color: #F0F0F0; }
 .kpi-card.highlight .kpi-value { color: white; }
-.kpi-sub { font-size: 11px; color: #555; margin-top: 3px; }
+.kpi-sub { font-size: 11px; color: #CC7744; margin-top: 3px; }
 .kpi-card.highlight .kpi-sub { color: rgba(255,255,255,.65); }
 label[data-testid="stWidgetLabel"] p { color: #AAA !important; font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: .5px !important; }
 div[data-testid="stMetric"] label { font-family: 'Sora', sans-serif !important; }
@@ -561,10 +561,10 @@ with col_g1:
                      color_discrete_sequence=colors)
         fig.update_layout(
             showlegend=False, height=300, margin=dict(l=0,r=0,t=0,b=0),
-            plot_bgcolor="#1A1A1A", paper_bgcolor="#1A1A1A",
+            plot_bgcolor="#1C0A00", paper_bgcolor="#1C0A00",
             font_family="Sora",
             yaxis=dict(autorange="reversed", tickfont=dict(size=10, color="#AAA")),
-            xaxis=dict(tickfont=dict(size=10), gridcolor="#2A2A2A")
+            xaxis=dict(tickfont=dict(size=10), gridcolor="#5A2000")
         )
         fig.update_traces(marker_color=colors)
         st.plotly_chart(fig, use_container_width=True)
@@ -589,7 +589,7 @@ with col_g2:
         fig2.update_layout(
             height=300, margin=dict(l=0,r=0,t=0,b=0),
             legend=dict(font=dict(size=10, color="#AAA"), orientation="v"),
-            paper_bgcolor="#1A1A1A", font_family="Sora"
+            paper_bgcolor="#1C0A00", font_family="Sora"
         )
         st.plotly_chart(fig2, use_container_width=True)
     else:
@@ -608,10 +608,10 @@ fig3 = go.Figure(go.Scatter(
 ))
 fig3.update_layout(
     height=180, margin=dict(l=0,r=0,t=0,b=0),
-    plot_bgcolor="#1A1A1A", paper_bgcolor="#1A1A1A",
+    plot_bgcolor="#1C0A00", paper_bgcolor="#1C0A00",
     font_family="Sora",
-    xaxis=dict(gridcolor="#2A2A2A", tickfont=dict(size=11, color="#AAA")),
-    yaxis=dict(gridcolor="#2A2A2A", tickfont=dict(size=10, color="#AAA")),
+    xaxis=dict(gridcolor="#5A2000", tickfont=dict(size=11, color="#AAA")),
+    yaxis=dict(gridcolor="#5A2000", tickfont=dict(size=10, color="#AAA")),
     showlegend=False
 )
 st.plotly_chart(fig3, use_container_width=True)
