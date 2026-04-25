@@ -588,9 +588,8 @@ with col_g2:
         ))
         fig2.update_layout(
             height=300, margin=dict(l=0,r=0,t=0,b=0),
-            legend=dict(font=dict(size=10), orientation="v"),
-            paper_bgcolor="#1A1A1A", font_family="Sora",
-            legend=dict(font=dict(color="#AAA"))
+            legend=dict(font=dict(size=10, color="#AAA"), orientation="v"),
+            paper_bgcolor="#1A1A1A", font_family="Sora"
         )
         st.plotly_chart(fig2, use_container_width=True)
     else:
