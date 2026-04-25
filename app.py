@@ -168,10 +168,10 @@ DARK = {
     "sidebar_bg": "linear-gradient(180deg,#1a0a00,#0d0500)",
 }
 LIGHT = {
-    "bg": "#FFF8F4", "bg2": "#FFFFFF", "bg3": "#FFF3EC",
-    "border": "#FFD5B8", "text": "#1a0a00", "text2": "#C84E00",
+    "bg": "#FFFFFF", "bg2": "#FFFFFF", "bg3": "#FFF8F4",
+    "border": "#FFD5B8", "text": "#111111", "text2": "#C84E00",
     "card": "#FFFFFF", "input_bg": "#FFF8F4", "input_border": "#FFB380",
-    "sidebar_bg": "linear-gradient(180deg,#fff3ec,#ffe5d0)",
+    "sidebar_bg": "linear-gradient(180deg,#1a0a00,#3d1500)",
 }
 
 def get_theme():
@@ -310,47 +310,51 @@ dark     = st.session_state.dark_mode
 tema_ico = "☀️" if dark else "🌙"
 
 # ── TOPBAR ───────────────────────────────────────────────────────────────────
-c1, c2, c3 = st.columns([0.06, 3, 1.5])
-with c1:
-    st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
-    if st.button("☰", key="menu_btn"):
+# Topbar full-width HTML + botões streamlit sobrepostos
+st.markdown(f"""
+<div style="background:linear-gradient(90deg,#1a0a00,#3d1500);
+            border-bottom:2.5px solid #F26522;
+            padding:0 20px; height:56px;
+            display:flex; align-items:center; justify-content:space-between;
+            margin: 0 -1rem; margin-bottom: 0;
+            box-shadow: 0 4px 20px rgba(242,101,34,.2);">
+  <div style="display:flex;align-items:center;gap:14px;">
+    <div style="width:36px;height:36px;background:#F26522;border-radius:9px;
+                display:flex;align-items:center;justify-content:center;
+                font-size:15px;font-weight:800;color:white;flex-shrink:0;">UV</div>
+    <span style="font-size:17px;font-weight:700;color:white;letter-spacing:-.3px;">
+      UNIVISA <span style="color:#F26522;">Receitas</span>
+    </span>
+    <span style="background:rgba(242,101,34,.2);color:#FF8C42;font-size:11px;font-weight:700;
+                 padding:3px 11px;border-radius:20px;border:1px solid rgba(242,101,34,.3);">
+      {st.session_state.ano}
+    </span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div style="background:#F26522;width:32px;height:32px;border-radius:50%;
+                display:flex;align-items:center;justify-content:center;
+                font-size:13px;font-weight:700;color:white;">{iniciais}</div>
+    <span style="font-size:13px;font-weight:600;color:white;">{nome}</span>
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
+# Botões funcionais abaixo da topbar
+tb1, tb2, tb3, tb_esp = st.columns([0.5, 0.5, 0.5, 8])
+with tb1:
+    if st.button("☰", key="menu_btn", help="Painel lateral"):
         st.session_state.sidebar_open = not st.session_state.get("sidebar_open", False)
         st.rerun()
+with tb2:
+    if st.button(tema_ico, key="tema_btn", help="Alternar tema claro/escuro"):
+        st.session_state.dark_mode = not dark
+        st.rerun()
+with tb3:
+    if st.button("🗄️", key="db_btn", help="Banco de Dados"):
+        st.session_state.aba = "banco" if st.session_state.aba != "banco" else "dashboard"
+        st.rerun()
 
-with c2:
-    st.markdown(f"""
-    <div style="display:flex;align-items:center;gap:12px;padding:6px 0;">
-      <div style="width:36px;height:36px;background:#F26522;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:white;">UV</div>
-      <span style="font-size:17px;font-weight:700;color:{T['text']};letter-spacing:-.3px;">
-        UNIVISA <span style="color:#F26522">Receitas</span>
-      </span>
-      <span style="background:rgba(242,101,34,.2);color:#FF8C42;font-size:11px;font-weight:700;padding:3px 11px;border-radius:20px;border:1px solid rgba(242,101,34,.3);">
-        {st.session_state.ano}
-      </span>
-    </div>
-    """, unsafe_allow_html=True)
-
-with c3:
-    bc1, bc2, bc3 = st.columns([1, 1, 2])
-    with bc1:
-        st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
-        if st.button(tema_ico, key="tema_btn", help="Alternar tema"):
-            st.session_state.dark_mode = not dark
-            st.rerun()
-    with bc2:
-        st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
-        if st.button("🗄️", key="db_btn", help="Banco de Dados"):
-            st.session_state.aba = "banco" if st.session_state.aba != "banco" else "dashboard"
-            st.rerun()
-    with bc3:
-        st.markdown(f"""
-        <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:6px 0;">
-          <div style="background:#F26522;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white;">{iniciais}</div>
-          <span style="font-size:12px;font-weight:600;color:{T['text']};">{nome}</span>
-        </div>
-        """, unsafe_allow_html=True)
-
-st.markdown(f"<hr style='margin:4px 0 12px;border-color:{T['border']};'>", unsafe_allow_html=True)
+st.markdown(f"<div style='margin-bottom:8px;'></div>", unsafe_allow_html=True)
 
 # ── SIDEBAR ──────────────────────────────────────────────────────────────────
 if st.session_state.get("sidebar_open", False):
