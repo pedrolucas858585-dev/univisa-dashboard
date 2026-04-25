@@ -780,11 +780,14 @@ def _build_figs():
     top10_e = sorted([(r["nome"][:40], gv(r)) for r in cursos if gv(r)>0], key=lambda x:x[1], reverse=True)[:10]
     df_e = pd.DataFrame(top10_e, columns=["Curso","Receita"]) if top10_e else pd.DataFrame(columns=["Curso","Receita"])
     cols_e = [f"rgba(242,101,34,{1-i*0.08})" for i in range(len(df_e))]
+    # Sort descending so top course appears at top
+    df_e = df_e.sort_values("Receita", ascending=True)  # ascending=True because orientation="h" autorange="reversed"
+    cols_e = [f"rgba(242,101,34,{1-i*0.08})" for i in range(len(df_e)-1, -1, -1)]
     fb = go.Figure(go.Bar(x=df_e["Receita"], y=df_e["Curso"], orientation="h",
         marker_color=cols_e, hovertemplate="<b>%{y}</b><br>R$ %{x:,.2f}<extra></extra>"))
-    fb.update_layout(title="Top 10 Cursos por Receita", height=400, margin=dict(l=0,r=0,t=40,b=0),
+    fb.update_layout(title="Top 10 Cursos por Receita", height=400, margin=dict(l=150,r=20,t=40,b=0),
         plot_bgcolor="white", paper_bgcolor="white", font_family="Sora",
-        yaxis=dict(autorange="reversed"), xaxis=dict(tickformat=",.0f", tickprefix="R$"))
+        yaxis=dict(tickfont=dict(size=11)), xaxis=dict(tickformat=",.0f", tickprefix="R$"))
     pal = ["#F26522","#FF8C42","#C84E00","#FFB380","#E05A00","#FFD5B8","#A03C00","#FFC4A0"]
     fp = go.Figure(go.Pie(labels=list(by_area.keys()), values=list(by_area.values()),
         hole=.5, marker_colors=pal[:len(by_area)],
