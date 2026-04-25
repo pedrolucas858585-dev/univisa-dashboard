@@ -403,7 +403,7 @@ with st.sidebar:
     if aba_ativa_sb == "planilhas":
         st.markdown('<div style="font-size:10px;font-weight:700;color:#F26522;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;">📂 Planilhas Salvas</div>', unsafe_allow_html=True)
 
-    uploads = get_uploads()
+    uploads = get_uploads(usuario_id=user["id"], is_admin=is_admin)
     if uploads:
         for up in uploads:
             c1, c2 = st.columns([4, 1])
@@ -507,7 +507,7 @@ with ba4:
 # ── ABA BANCO ────────────────────────────────────────────────────────────────
 if st.session_state.aba == "banco":
     st.markdown(f'<h3 style="color:{TEXT};margin:8px 0 16px;">🗄️ Banco de Dados — Planilhas Salvas</h3>', unsafe_allow_html=True)
-    uploads = get_uploads()
+    uploads = get_uploads(usuario_id=user["id"], is_admin=is_admin)
     if not uploads:
         st.info("Nenhuma planilha salva no banco ainda.")
     else:
