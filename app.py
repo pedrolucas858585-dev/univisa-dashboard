@@ -18,12 +18,9 @@ st.set_page_config(
 # ─── SUPABASE ─────────────────────────────────────────────────────────────────
 @st.cache_resource
 def get_supabase() -> Client:
-    url  = st.secrets["SUPABASE_URL"]
-    key  = st.secrets["SUPABASE_KEY"]
-    from supabase import ClientOptions
-    return create_client(url, key, options=ClientOptions(
-        headers={"apikey": key, "Authorization": f"Bearer {key}"}
-    ))
+    url = st.secrets["SUPABASE_URL"]
+    key = st.secrets["SUPABASE_KEY"]
+    return create_client(url, key)
 
 supabase = get_supabase()
 
