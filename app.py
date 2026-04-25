@@ -87,7 +87,6 @@ def save_upload(nome, ano, dados, uid):
     except Exception as e:
         st.error(f"Erro: {e}"); return None
 
-@st.cache_data(ttl=300)
 def load_upload(upload_id):
     try:
         res = supabase.table("uploads").select("dados,nome_arquivo,ano").eq("id", upload_id).execute()
@@ -155,7 +154,7 @@ def parse_sheet(raw_tuple):
 
 # ─── SESSION ─────────────────────────────────────────────────────────────────
 for k, v in [("user",None),("dados",[]),("ano","2025"),
-             ("arquivo",None),("dark_mode",False),("aba","dashboard")]:
+             ("arquivo",None),("dark_mode",False),("aba","dashboard"),("sb_aba","planilhas")]:
     if k not in st.session_state:
         st.session_state[k] = v
 
@@ -384,7 +383,24 @@ with st.sidebar:
         st.session_state.dados = []
         st.rerun()
 
-    st.markdown('<div style="font-size:10px;font-weight:700;color:#F26522;text-transform:uppercase;letter-spacing:.8px;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid rgba(242,101,34,.2);">📂 Planilhas Salvas</div>', unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Abas da sidebar
+    sb1, sb2 = st.columns(2)
+    with sb1:
+        if st.button("📂 Planilhas", use_container_width=True, key="sb_plan"):
+            st.session_state.sb_aba = "planilhas"; st.rerun()
+    with sb2:
+        if st.button("👤 Usuários", use_container_width=True, key="sb_user"):
+            st.session_state.sb_aba = "usuarios"; st.rerun()
+
+    aba_ativa_sb = st.session_state.get("sb_aba", "planilhas")
+    cor_plan = "#F26522" if aba_ativa_sb == "planilhas" else "rgba(242,101,34,.3)"
+    cor_user = "#F26522" if aba_ativa_sb == "usuarios" else "rgba(242,101,34,.3)"
+    st.markdown(f'<div style="display:flex;margin-bottom:12px;"><div style="flex:1;height:2px;background:{cor_plan};"></div><div style="flex:1;height:2px;background:{cor_user};"></div></div>', unsafe_allow_html=True)
+
+    if aba_ativa_sb == "planilhas":
+        st.markdown('<div style="font-size:10px;font-weight:700;color:#F26522;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;">📂 Planilhas Salvas</div>', unsafe_allow_html=True)
 
     uploads = get_uploads()
     if uploads:
@@ -406,7 +422,7 @@ with st.sidebar:
     else:
         st.markdown('<p style="font-size:12px;color:#AA6644;">Nenhuma salva ainda.</p>', unsafe_allow_html=True)
 
-    if is_admin:
+    if False:  # users moved to tab
         st.markdown('<div style="font-size:10px;font-weight:700;color:#F26522;text-transform:uppercase;letter-spacing:.8px;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid rgba(242,101,34,.2);">👤 Usuários</div>', unsafe_allow_html=True)
 
         with st.expander("➕ Adicionar usuário"):
@@ -482,14 +498,27 @@ if st.session_state.aba == "banco":
         st.info("Nenhuma planilha salva no banco ainda.")
     else:
         for up in uploads:
-            c1, c2, c3, c4 = st.columns([3,1.5,1.5,1])
-            with c1: st.markdown(f'<span style="font-weight:600;color:{TEXT};">📊 {up["nome_arquivo"]}</span>', unsafe_allow_html=True)
-            with c2: st.markdown(f'<span style="color:{TEXT2};">Ano: {up["ano"] or "—"}</span>', unsafe_allow_html=True)
+            c1, c2, c3, c4, c5 = st.columns([3, 1.2, 1.5, 1.2, 1])
+            with c1:
+                st.markdown(f'<span style="font-weight:600;color:{TEXT};font-size:13px;">📊 {up["nome_arquivo"]}</span>', unsafe_allow_html=True)
+            with c2:
+                st.markdown(f'<span style="color:{TEXT2};font-size:12px;">📅 {up["ano"] or "—"}</span>', unsafe_allow_html=True)
             with c3:
                 data = up.get("criado_em","")[:10] if up.get("criado_em") else "—"
-                st.markdown(f'<span style="color:{TEXT2};">{data}</span>', unsafe_allow_html=True)
+                st.markdown(f'<span style="color:{TEXT2};font-size:12px;">🕐 {data}</span>', unsafe_allow_html=True)
             with c4:
-                if is_admin and st.button("🗑 Excluir", key=f"dbdel_{up['id']}"):
+                if st.button("📂 Carregar", key=f"banco_load_{up['id']}"):
+                    d, arq, ano_up = load_upload(up["id"])
+                    if d:
+                        st.session_state.dados = d
+                        st.session_state.arquivo = arq
+                        st.session_state.ano = ano_up or "2025"
+                        st.session_state.aba = "dashboard"
+                        st.rerun()
+                    else:
+                        st.error("Erro ao carregar.")
+            with c5:
+                if is_admin and st.button("🗑", key=f"dbdel_{up['id']}"):
                     delete_upload(up["id"]); st.rerun()
             st.markdown(f"<hr>", unsafe_allow_html=True)
         st.info(f"Total: **{len(uploads)}** planilha(s) no banco.")
