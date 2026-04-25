@@ -244,7 +244,7 @@ section[data-testid="stSidebar"] .stButton > button:hover {{
 
 # ─── SESSION ─────────────────────────────────────────────────────────────────
 for k, v in [("user",None),("dados",[]),("ano","2025"),("arquivo",None),
-             ("dark_mode",False),("aba","dashboard")]:
+             ("dark_mode",False),("aba","dashboard"),("sidebar_open",False)]:
     if k not in st.session_state:
         st.session_state[k] = v
 
@@ -342,12 +342,7 @@ div[data-testid="stHorizontalBlock"]:first-of-type .stButton > button:hover {
 </style>
 """, unsafe_allow_html=True)
 
-tb_menu, tb_brand, tb_esp, tb_tema, tb_db, tb_user = st.columns([0.4, 3.5, 2, 0.4, 0.4, 1.2])
-
-with tb_menu:
-    if st.button("☰", key="menu_btn", help="Painel lateral"):
-        st.session_state.sidebar_open = not st.session_state.get("sidebar_open", False)
-        st.rerun()
+tb_brand, tb_esp, tb_tema, tb_db, tb_user = st.columns([3.5, 2, 0.4, 0.4, 1.2])
 
 with tb_brand:
     aba_ativa = st.session_state.aba
