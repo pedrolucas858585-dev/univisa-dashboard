@@ -233,8 +233,38 @@ header[data-testid="stHeader"] { display: none !important; }
 footer { display: none !important; }
 /* Full dark background including outside block */
 .stApp > div:first-child { background: #111111 !important; }
-section[data-testid="stSidebar"] { background: #2A0E00 !important; border-right: 1px solid #5A2000; }
-section[data-testid="stSidebar"] * { color: #CCC !important; }
+section[data-testid="stSidebar"] {
+  background: linear-gradient(180deg, #1a0a00 0%, #3d1500 100%) !important;
+  border-right: 2px solid #F26522 !important;
+}
+section[data-testid="stSidebar"] * { color: #FFD5B8 !important; }
+section[data-testid="stSidebar"] h1,
+section[data-testid="stSidebar"] h2,
+section[data-testid="stSidebar"] h3,
+section[data-testid="stSidebar"] h4 { color: white !important; }
+section[data-testid="stSidebar"] .stButton > button {
+  background: rgba(242,101,34,.15) !important;
+  border: 1px solid #F26522 !important;
+  color: #FF8C42 !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  transition: all .2s !important;
+}
+section[data-testid="stSidebar"] .stButton > button:hover {
+  background: #F26522 !important;
+  color: white !important;
+}
+/* Collapse arrow button */
+section[data-testid="stSidebar"] button[data-testid="baseButton-headerNoPadding"] {
+  background: #F26522 !important;
+  color: white !important;
+  border-radius: 0 8px 8px 0 !important;
+}
+div[data-testid="collapsedControl"] {
+  background: #F26522 !important;
+  border-radius: 0 8px 8px 0 !important;
+}
+div[data-testid="collapsedControl"] svg { color: white !important; fill: white !important; }
 div[data-baseweb="input"] input, div[data-baseweb="select"] div, div[data-baseweb="textarea"] textarea {
   background: #3A1500 !important; color: #F0F0F0 !important; border-color: #7A3500 !important;
 }
@@ -376,22 +406,45 @@ st.markdown(f"""
 
 # SIDEBAR
 with st.sidebar:
-    st.markdown("### ⚙️ Painel")
+    # Header do painel
+    nome_usuario = user.get("nome") or user["login"]
+    iniciais = nome_usuario[:2].upper()
+    st.markdown(f"""
+    <div style="padding:16px 0 20px;border-bottom:1px solid rgba(242,101,34,.3);margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <div style="width:40px;height:40px;background:#F26522;border-radius:10px;
+                    display:flex;align-items:center;justify-content:center;
+                    font-size:16px;font-weight:800;color:white;">{iniciais}</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:white;">{nome_usuario}</div>
+          <div style="font-size:10px;color:#FF8C42;text-transform:uppercase;letter-spacing:.5px;">
+            {"Admin" if is_admin else "Usuário"}
+          </div>
+        </div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
     if st.button("🚪 Sair", use_container_width=True):
         st.session_state.user = None
         st.session_state.dados = []
         st.rerun()
-    
-    st.divider()
-    
-    # Histórico de uploads
-    st.markdown("#### 📂 Planilhas Salvas")
+
+    st.markdown("""
+    <div style="font-size:10px;font-weight:700;color:#F26522;text-transform:uppercase;
+                letter-spacing:.8px;margin:20px 0 10px;padding-bottom:6px;
+                border-bottom:1px solid rgba(242,101,34,.2);">
+      📂 Planilhas Salvas
+    </div>
+    """, unsafe_allow_html=True)
+
     uploads = get_uploads()
     if uploads:
         for up in uploads:
             col_up, col_del = st.columns([3, 1])
             with col_up:
-                if st.button(f"📊 {up['ano']} — {up['nome_arquivo'][:20]}", key=f"load_{up['id']}", use_container_width=True):
+                label = f"📊 {up['ano']} — {up['nome_arquivo'][:18]}"
+                if st.button(label, key=f"load_{up['id']}", use_container_width=True):
                     dados, arq, ano = load_upload(up["id"])
                     if dados:
                         st.session_state.dados = dados
@@ -404,30 +457,36 @@ with st.sidebar:
                         delete_upload(up["id"])
                         st.rerun()
     else:
-        st.caption("Nenhuma planilha salva ainda.")
-    
-    # Gerenciar usuários (admin)
+        st.markdown("<p style='font-size:12px;color:#AA6644;'>Nenhuma planilha salva.</p>", unsafe_allow_html=True)
+
     if is_admin:
-        st.divider()
-        st.markdown("#### 👤 Usuários")
-        with st.expander("Adicionar usuário"):
+        st.markdown("""
+        <div style="font-size:10px;font-weight:700;color:#F26522;text-transform:uppercase;
+                    letter-spacing:.8px;margin:20px 0 10px;padding-bottom:6px;
+                    border-bottom:1px solid rgba(242,101,34,.2);">
+          👤 Usuários
+        </div>
+        """, unsafe_allow_html=True)
+
+        with st.expander("➕ Adicionar usuário"):
             with st.form("add_user_form"):
                 nu_login = st.text_input("Login")
                 nu_senha = st.text_input("Senha", type="password")
                 nu_nome  = st.text_input("Nome completo")
                 nu_role  = st.selectbox("Perfil", ["user","admin"])
-                if st.form_submit_button("Adicionar"):
+                if st.form_submit_button("Adicionar", use_container_width=True):
                     if nu_login and nu_senha:
                         if add_user(nu_login, nu_senha, nu_nome, nu_role):
                             st.success(f"Usuário '{nu_login}' adicionado!")
                     else:
                         st.error("Login e senha obrigatórios.")
-        
+
         users_list = get_users()
         for u in users_list:
             col_u, col_d = st.columns([3,1])
             with col_u:
-                st.markdown(f"**{u['nome']}** `{u['role']}`")
+                role_badge = "🟠 Admin" if u["role"] == "admin" else "⚪ User"
+                st.markdown(f"<span style='font-size:12px;color:white;font-weight:600;'>{u['nome']}</span><br><span style='font-size:10px;color:#F26522;'>{role_badge}</span>", unsafe_allow_html=True)
             with col_d:
                 if u["role"] != "admin" and st.button("✕", key=f"du_{u['id']}"):
                     delete_user(u["id"])
