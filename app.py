@@ -768,6 +768,183 @@ else:
 
 st.dataframe(df_show, use_container_width=True, height=380)
 
+# ── EXPORTAR ─────────────────────────────────────────────────────────────────
+import json as _json
+import io as _io
+import plotly.io as _pio
+
+st.markdown(f'<p style="font-size:13px;font-weight:700;color:{TEXT};margin:16px 0 8px;">📤 Exportar Relatório</p>', unsafe_allow_html=True)
+ex1, ex2, _ = st.columns([1.2, 1.2, 5])
+
+def _build_figs():
+    top10_e = sorted([(r["nome"][:40], gv(r)) for r in cursos if gv(r)>0], key=lambda x:x[1], reverse=True)[:10]
+    df_e = pd.DataFrame(top10_e, columns=["Curso","Receita"]) if top10_e else pd.DataFrame(columns=["Curso","Receita"])
+    cols_e = [f"rgba(242,101,34,{1-i*0.08})" for i in range(len(df_e))]
+    fb = go.Figure(go.Bar(x=df_e["Receita"], y=df_e["Curso"], orientation="h",
+        marker_color=cols_e, hovertemplate="<b>%{y}</b><br>R$ %{x:,.2f}<extra></extra>"))
+    fb.update_layout(title="Top 10 Cursos por Receita", height=400, margin=dict(l=0,r=0,t=40,b=0),
+        plot_bgcolor="white", paper_bgcolor="white", font_family="Sora",
+        yaxis=dict(autorange="reversed"), xaxis=dict(tickformat=",.0f", tickprefix="R$"))
+    pal = ["#F26522","#FF8C42","#C84E00","#FFB380","#E05A00","#FFD5B8","#A03C00","#FFC4A0"]
+    fp = go.Figure(go.Pie(labels=list(by_area.keys()), values=list(by_area.values()),
+        hole=.5, marker_colors=pal[:len(by_area)],
+        hovertemplate="<b>%{label}</b><br>R$ %{value:,.2f}<br>%{percent}<extra></extra>")) if by_area else go.Figure()
+    fp.update_layout(title="Distribuição por Área", height=400, margin=dict(l=0,r=0,t=40,b=0),
+        paper_bgcolor="white", font_family="Sora")
+    vme = [sum(r["meses"].get(m,0) for r in cursos) for m in MESES]
+    fl = go.Figure(go.Scatter(x=MESES_SH, y=vme, mode="lines+markers",
+        line=dict(color="#F26522",width=2.5), fill="tozeroy", fillcolor="rgba(242,101,34,.1)",
+        marker=dict(color="#F26522",size=6), hovertemplate="<b>%{x}</b><br>R$ %{y:,.2f}<extra></extra>"))
+    fl.update_layout(title="Evolução Mensal", height=300, margin=dict(l=0,r=0,t=40,b=0),
+        plot_bgcolor="white", paper_bgcolor="white", font_family="Sora")
+    return fb, fp, fl
+
+with ex1:
+    if st.button("🌐 HTML Interativo", use_container_width=True, help="Arquivo HTML com gráficos interativos"):
+        fb, fp, fl = _build_figs()
+        bar_d  = _json.loads(_pio.to_json(fb))
+        pie_d  = _json.loads(_pio.to_json(fp))
+        line_d = _json.loads(_pio.to_json(fl))
+        th = "".join(f"<th>{c}</th>" for c in df_show.columns)
+        tr = "".join("<tr>"+"".join(f"<td>{v}</td>" for v in row)+"</tr>" for _,row in df_show.iterrows())
+        ano_label = st.session_state.ano
+        mes_label = mes_sel or ""
+        total_label = fmt_short(total)
+        maior_label = fmt_short(gv(maior)) if maior else "—"
+        maior_nome  = maior["nome"][:28] if maior else "—"
+        html_out = f"""<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+<title>UNIVISA Receitas {ano_label}</title>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{{box-sizing:border-box;margin:0;padding:0;}}body{{font-family:'Sora',sans-serif;background:#FFF8F4;}}
+.hdr{{background:linear-gradient(90deg,#1a0a00,#3d1500);padding:14px 28px;display:flex;align-items:center;gap:14px;border-bottom:3px solid #F26522;}}
+.hdr h1{{color:white;font-size:20px;}}.badge{{background:rgba(242,101,34,.25);color:#FF8C42;font-size:11px;font-weight:700;padding:3px 12px;border-radius:20px;border:1px solid rgba(242,101,34,.4);}}
+.wrap{{max-width:1400px;margin:0 auto;padding:24px 20px;}}
+.kpis{{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px;}}
+.kpi{{background:white;border:1.5px solid #FFD5B8;border-radius:12px;padding:14px 16px;position:relative;overflow:hidden;}}
+.kpi::before{{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:#F26522;}}
+.kpi.hl{{background:#F26522;border-color:#F26522;}}.kpi-lbl{{font-size:9px;font-weight:700;color:#C84E00;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;}}
+.kpi.hl .kpi-lbl{{color:rgba(255,255,255,.8);}}.kpi-val{{font-size:18px;font-weight:700;color:#111;}}.kpi.hl .kpi-val{{color:white;}}
+.kpi-sub{{font-size:10px;color:#C84E00;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}}.kpi.hl .kpi-sub{{color:rgba(255,255,255,.7);}}
+.charts{{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}}.box{{background:white;border:1.5px solid #FFD5B8;border-radius:12px;padding:14px;}}
+.stitle{{font-size:12px;font-weight:700;color:#111;margin-bottom:8px;}}
+table{{width:100%;border-collapse:collapse;background:white;border-radius:12px;overflow:hidden;border:1.5px solid #FFD5B8;font-size:11px;}}
+th{{padding:8px 10px;background:#F26522;color:white;font-size:10px;text-align:left;font-weight:700;}}
+td{{padding:5px 10px;border-bottom:1px solid #FFE5D0;}}tr:hover td{{background:#FFF3EC;}}
+.footer{{font-size:10px;color:#C84E00;margin-top:14px;display:flex;gap:20px;flex-wrap:wrap;}}
+</style></head><body>
+<div class="hdr">
+  <div style="background:white;border-radius:7px;padding:4px 8px;font-size:13px;font-weight:800;color:#F26522;">UV</div>
+  <h1>UNIVISA <span style="color:#FF8C42;">Receitas</span></h1>
+  <span class="badge">{ano_label}</span>{"<span class='badge'>"+mes_label+"</span>" if mes_label else ""}
+</div>
+<div class="wrap">
+  <div class="kpis">
+    <div class="kpi hl"><div class="kpi-lbl">Total Geral</div><div class="kpi-val">{total_label}</div><div class="kpi-sub">{ano_label}</div></div>
+    <div class="kpi"><div class="kpi-lbl">Maior Receita</div><div class="kpi-val">{maior_label}</div><div class="kpi-sub">{maior_nome}</div></div>
+    <div class="kpi"><div class="kpi-lbl">Qtd. Cursos</div><div class="kpi-val">{qtd}</div><div class="kpi-sub">com receita</div></div>
+    <div class="kpi"><div class="kpi-lbl">Pós-Graduação</div><div class="kpi-val">{fmt_short(pos_t)}</div><div class="kpi-sub">total pós</div></div>
+    <div class="kpi"><div class="kpi-lbl">Média/Curso</div><div class="kpi-val">{fmt_short(media)}</div><div class="kpi-sub">receita média</div></div>
+  </div>
+  <div class="charts">
+    <div class="box"><div class="stitle">Top 10 Cursos por Receita</div><div id="cbar"></div></div>
+    <div class="box"><div class="stitle">Distribuição por Área</div><div id="cpie"></div></div>
+  </div>
+  <div class="box" style="margin-bottom:16px;"><div class="stitle">Evolução Mensal</div><div id="cline"></div></div>
+  <div class="stitle" style="margin-bottom:8px;">Tabela de Receitas</div>
+  <table><thead><tr>{th}</tr></thead><tbody>{tr}</tbody></table>
+  <div class="footer">
+    <span><b>Arquivo:</b> {st.session_state.arquivo or "—"}</span>
+    <span><b>Gerado:</b> {datetime.now().strftime("%d/%m/%Y %H:%M")}</span>
+    <span><b>Usuário:</b> {nome}</span>
+  </div>
+</div>
+<script>
+var bd={_json.dumps(bar_d)};var pd2={_json.dumps(pie_d)};var ld={_json.dumps(line_d)};
+Plotly.newPlot('cbar',bd.data,bd.layout,{{responsive:true,displayModeBar:true}});
+Plotly.newPlot('cpie',pd2.data,pd2.layout,{{responsive:true,displayModeBar:true}});
+Plotly.newPlot('cline',ld.data,ld.layout,{{responsive:true,displayModeBar:true}});
+</script></body></html>"""
+        st.download_button("⬇️ Baixar HTML", data=html_out.encode("utf-8"),
+            file_name=f"UNIVISA_{ano_label}_{datetime.now().strftime('%Y%m%d_%H%M')}.html",
+            mime="text/html", use_container_width=True)
+
+with ex2:
+    if st.button("📄 PDF", use_container_width=True, help="PDF com gráficos e tabela"):
+        try:
+            from reportlab.lib.pagesizes import A4, landscape
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as RLImage, Table, TableStyle
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib import colors as rl_colors
+            from reportlab.lib.units import cm
+            fb, fp, fl = _build_figs()
+            def fig2img(f, w=700, h=380):
+                return _io.BytesIO(_pio.to_image(f, format="png", width=w, height=h, scale=2))
+            ib = fig2img(fb); ip = fig2img(fp); il = fig2img(fl, 1100, 280)
+            buf = _io.BytesIO()
+            doc = SimpleDocTemplate(buf, pagesize=landscape(A4),
+                leftMargin=1.5*cm, rightMargin=1.5*cm, topMargin=1.5*cm, bottomMargin=1.5*cm)
+            OR = rl_colors.HexColor("#F26522")
+            DK = rl_colors.HexColor("#1a0a00")
+            LT = rl_colors.HexColor("#FFD5B8")
+            ss = getSampleStyleSheet()
+            S = lambda name, **kw: ParagraphStyle(name, parent=ss["Normal"], **kw)
+            sT = S("T", fontSize=16, fontName="Helvetica-Bold", textColor=DK, spaceAfter=4)
+            sS = S("S", fontSize=9, textColor=rl_colors.HexColor("#C84E00"), spaceAfter=10)
+            sH = S("H", fontSize=10, fontName="Helvetica-Bold", textColor=DK, spaceBefore=8, spaceAfter=4)
+            story = [
+                Paragraph(f"UNIVISA Receitas — {st.session_state.ano}", sT),
+                Paragraph(f"Gerado em {datetime.now().strftime('%d/%m/%Y %H:%M')} · {nome}" + (f" · {mes_sel}" if mes_sel else ""), sS),
+            ]
+            kd = [["TOTAL GERAL","MAIOR RECEITA","QTD. CURSOS","PÓS-GRAD.","MÉDIA/CURSO"],
+                  [fmt_short(total), fmt_short(gv(maior)) if maior else "—", str(qtd), fmt_short(pos_t), fmt_short(media)]]
+            pw = landscape(A4)[0] - 3*cm
+            kt = Table(kd, colWidths=[pw/5]*5)
+            kt.setStyle(TableStyle([
+                ("BACKGROUND",(0,0),(0,1),OR),("TEXTCOLOR",(0,0),(0,1),rl_colors.white),
+                ("BACKGROUND",(1,0),(-1,0),rl_colors.HexColor("#FFF3EC")),("TEXTCOLOR",(1,0),(-1,0),rl_colors.HexColor("#C84E00")),
+                ("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),("FONTSIZE",(0,0),(-1,0),8),
+                ("FONTNAME",(0,1),(-1,1),"Helvetica-Bold"),("FONTSIZE",(0,1),(-1,1),13),
+                ("ALIGN",(0,0),(-1,-1),"CENTER"),("VALIGN",(0,0),(-1,-1),"MIDDLE"),
+                ("BOX",(0,0),(-1,-1),1,LT),("GRID",(0,0),(-1,-1),.5,LT),
+                ("TOPPADDING",(0,0),(-1,-1),8),("BOTTOMPADDING",(0,0),(-1,-1),8),
+            ]))
+            story += [kt, Spacer(1,10), Paragraph("Gráficos", sH)]
+            hw = (pw-.5*cm)/2
+            ch = 6*cm
+            ib.seek(0); ip.seek(0)
+            ct = Table([[RLImage(ib,width=hw,height=ch), RLImage(ip,width=hw,height=ch)]], colWidths=[hw,hw])
+            ct.setStyle(TableStyle([("VALIGN",(0,0),(-1,-1),"MIDDLE"),("RIGHTPADDING",(0,0),(0,-1),6)]))
+            story.append(ct)
+            story.append(Spacer(1,6))
+            il.seek(0)
+            story.append(RLImage(il,width=pw,height=4.2*cm))
+            story += [Spacer(1,8), Paragraph("Tabela de Receitas", sH)]
+            max_r = 45
+            td = [list(df_show.columns)] + [list(r) for _,r in df_show.head(max_r).iterrows()]
+            cw = pw/len(df_show.columns)
+            tbl = Table(td, colWidths=[cw]*len(df_show.columns), repeatRows=1)
+            tbl.setStyle(TableStyle([
+                ("BACKGROUND",(0,0),(-1,0),OR),("TEXTCOLOR",(0,0),(-1,0),rl_colors.white),
+                ("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),("FONTSIZE",(0,0),(-1,-1),7),
+                ("ROWBACKGROUNDS",(0,1),(-1,-1),[rl_colors.white,rl_colors.HexColor("#FFF8F4")]),
+                ("GRID",(0,0),(-1,-1),.3,LT),
+                ("TOPPADDING",(0,0),(-1,-1),3),("BOTTOMPADDING",(0,0),(-1,-1),3),
+                ("ALIGN",(1,0),(-1,-1),"RIGHT"),
+            ]))
+            story.append(tbl)
+            if len(df_show) > max_r:
+                story.append(Paragraph(f"* {max_r} de {len(df_show)} registros", sS))
+            doc.build(story)
+            buf.seek(0)
+            st.download_button("⬇️ Baixar PDF", data=buf,
+                file_name=f"UNIVISA_{st.session_state.ano}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf",
+                mime="application/pdf", use_container_width=True)
+        except Exception as e:
+            st.error(f"Erro ao gerar PDF: {e}")
+
+
 st.markdown(f"""
 <div style="padding:8px 0;font-size:11px;color:{TEXT2};display:flex;gap:22px;flex-wrap:wrap;margin-top:6px;">
   <span><strong style="color:{TEXT}">Arquivo:</strong> {st.session_state.arquivo or 'Nenhum'}</span>
