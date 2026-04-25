@@ -155,7 +155,7 @@ def parse_sheet(raw_tuple):
 
 # ─── SESSION ─────────────────────────────────────────────────────────────────
 for k, v in [("user",None),("dados",[]),("ano","2025"),
-             ("arquivo",None),("dark_mode",False),("aba","dashboard"),("sb_aba","planilhas")]:
+             ("arquivo",None),("dark_mode",False),("aba","dashboard"),("sb_aba","planilhas"),("last_file",None)]:
     if k not in st.session_state:
         st.session_state[k] = v
 
@@ -590,12 +590,33 @@ if st.session_state.aba == "usuarios":
     st.stop()
 
 # ── UPLOAD ───────────────────────────────────────────────────────────────────
-with st.expander("📁 Carregar nova planilha .xlsx", expanded=not bool(st.session_state.dados)):
+# Botão limpar dashboard
+if st.session_state.dados:
+    col_exp, col_clr = st.columns([9, 1])
+    with col_clr:
+        if st.button("🗑 Limpar", help="Limpar dados do dashboard"):
+            st.session_state.dados = []
+            st.session_state.arquivo = None
+            st.session_state.ano = "2025"
+            st.rerun()
+    with col_exp:
+        expander_container = st.expander("📁 Carregar nova planilha .xlsx", expanded=False)
+else:
+    expander_container = st.expander("📁 Carregar nova planilha .xlsx", expanded=True)
+
+with expander_container:
     uploaded = st.file_uploader(
         "Arraste ou clique — formato Relatório de Receitas Líquidas UNIVISA",
-        type=["xlsx","xls"], label_visibility="visible"
+        type=["xlsx","xls"], label_visibility="visible", key="file_uploader"
     )
+    if uploaded is None and st.session_state.get("last_file") is not None:
+        st.session_state.dados = []
+        st.session_state.arquivo = None
+        st.session_state.ano = "2025"
+        st.session_state.last_file = None
+        st.rerun()
     if uploaded:
+        st.session_state.last_file = uploaded.name
         import openpyxl
         wb = openpyxl.load_workbook(uploaded, data_only=True)
         raw = tuple(tuple(c.value for c in row) for row in wb.active.iter_rows())
