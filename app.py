@@ -731,7 +731,7 @@ with g2:
         fig2 = go.Figure(go.Pie(
             labels=list(by_area.keys()), values=list(by_area.values()),
             hole=.6, marker_colors=pal[:len(by_area)], textfont_size=10,
-            hovertemplate="<b>%{label}</b><br>R$ %{value:,.2f}<br>%{percent}<extra></extra>"
+            hovertemplate="<b>%{label}</b><br>%{percent}<extra></extra>"
         ))
         fig2.update_layout(height=280, margin=dict(l=0,r=0,t=0,b=0),
             legend=dict(font=dict(size=10,color=TEXT2), orientation="v"),
@@ -783,8 +783,18 @@ def _build_figs():
     # Sort descending so top course appears at top
     df_e = df_e.sort_values("Receita", ascending=True)  # ascending=True because orientation="h" autorange="reversed"
     cols_e = [f"rgba(242,101,34,{1-i*0.08})" for i in range(len(df_e)-1, -1, -1)]
+    def brl(v):
+        try:
+            v = float(v)
+            s = f"{int(v):,}".replace(",",".")
+            c = round((v - int(v)) * 100)
+            return f"R$ {s},{c:02d}"
+        except: return "—"
+    df_e["ValorFmt"] = df_e["Receita"].apply(brl)
     fb = go.Figure(go.Bar(x=df_e["Receita"], y=df_e["Curso"], orientation="h",
-        marker_color=cols_e, hovertemplate="<b>%{y}</b><br>R$ %{x:,.2f}<extra></extra>"))
+        marker_color=cols_e,
+        customdata=df_e["ValorFmt"],
+        hovertemplate="<b>%{y}</b><br>%{customdata}<extra></extra>"))
     fb.update_layout(title="Top 10 Cursos por Receita", height=400, margin=dict(l=150,r=20,t=40,b=0),
         plot_bgcolor="white", paper_bgcolor="white", font_family="Sora",
         yaxis=dict(tickfont=dict(size=11)), xaxis=dict(tickformat=",.0f", tickprefix="R$"))
