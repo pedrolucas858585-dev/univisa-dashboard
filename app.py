@@ -479,7 +479,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # Botões de ação abaixo da topbar
-ba1, ba2, ba3, _ = st.columns([0.18, 0.18, 0.18, 5])
+ba1, ba2, ba3, ba4, _ = st.columns([0.18, 0.18, 0.18, 0.18, 4])
 with ba1:
     if st.button(tema_ico, key="tema_btn", help=tema_tip):
         st.session_state.dark_mode = not dark; st.rerun()
@@ -488,6 +488,18 @@ with ba2:
     db_tip   = "Banco de Dados" if st.session_state.aba != "banco" else "Voltar ao Dashboard"
     if st.button(db_label, key="db_btn", help=db_tip):
         st.session_state.aba = "banco" if st.session_state.aba != "banco" else "dashboard"
+        st.rerun()
+with ba3:
+    if is_admin:
+        usr_label = "👤" if st.session_state.aba != "usuarios" else "📊"
+        usr_tip   = "Gerenciar Usuários" if st.session_state.aba != "usuarios" else "Voltar ao Dashboard"
+        if st.button(usr_label, key="usr_btn", help=usr_tip):
+            st.session_state.aba = "usuarios" if st.session_state.aba != "usuarios" else "dashboard"
+            st.rerun()
+with ba4:
+    if st.button("🚪", key="sair_top", help="Sair"):
+        st.session_state.user = None
+        st.session_state.dados = []
         st.rerun()
 
 # ── ABA BANCO ────────────────────────────────────────────────────────────────
@@ -520,8 +532,60 @@ if st.session_state.aba == "banco":
             with c5:
                 if is_admin and st.button("🗑", key=f"dbdel_{up['id']}"):
                     delete_upload(up["id"]); st.rerun()
-            st.markdown(f"<hr>", unsafe_allow_html=True)
+            st.markdown("<hr>", unsafe_allow_html=True)
         st.info(f"Total: **{len(uploads)}** planilha(s) no banco.")
+    st.stop()
+
+# ── ABA USUÁRIOS ──────────────────────────────────────────────────────────────
+if st.session_state.aba == "usuarios":
+    st.markdown(f'<h3 style="color:{TEXT};margin:8px 0 16px;">👤 Gerenciar Usuários</h3>', unsafe_allow_html=True)
+
+    if not is_admin:
+        st.warning("Apenas administradores podem acessar esta área.")
+        st.stop()
+
+    # Adicionar novo usuário
+    st.markdown(f"""
+    <div style="background:{CARD};border:1.5px solid {BORDER};border-radius:14px;padding:20px 24px;margin-bottom:24px;">
+      <div style="font-size:13px;font-weight:700;color:{TEXT};margin-bottom:16px;">➕ Adicionar Novo Usuário</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    with st.form("form_add_user"):
+        col1, col2 = st.columns(2)
+        with col1:
+            f_login = st.text_input("Login", placeholder="Ex: maria.silva")
+            f_nome  = st.text_input("Nome completo", placeholder="Ex: Maria Silva")
+        with col2:
+            f_senha = st.text_input("Senha", type="password", placeholder="••••••••")
+            f_role  = st.selectbox("Perfil", ["user", "admin"])
+        if st.form_submit_button("✅ Adicionar Usuário", use_container_width=True):
+            if f_login and f_senha:
+                if add_user(f_login, f_senha, f_nome, f_role):
+                    st.success(f"Usuário '{f_login}' adicionado com sucesso!")
+                    st.rerun()
+            else:
+                st.error("Login e senha são obrigatórios.")
+
+    # Lista de usuários
+    st.markdown(f'<div style="font-size:13px;font-weight:700;color:{TEXT};margin:8px 0 12px;">👥 Usuários Cadastrados</div>', unsafe_allow_html=True)
+    users_list = get_users()
+    for u in users_list:
+        cu1, cu2, cu3, cu4 = st.columns([2, 2, 1.5, 1])
+        with cu1:
+            st.markdown(f'<span style="font-weight:600;color:{TEXT};">{u["nome"]}</span>', unsafe_allow_html=True)
+        with cu2:
+            st.markdown(f'<span style="color:{TEXT2};">@{u["login"]}</span>', unsafe_allow_html=True)
+        with cu3:
+            badge = "🟠 Admin" if u["role"] == "admin" else "⚪ Usuário"
+            st.markdown(f'<span style="color:{TEXT2};">{badge}</span>', unsafe_allow_html=True)
+        with cu4:
+            if u["role"] != "admin":
+                if st.button("🗑 Remover", key=f"rm_{u['id']}"):
+                    delete_user(u["id"]); st.rerun()
+            else:
+                st.markdown('<span style="font-size:11px;color:#AAA;">Protegido</span>', unsafe_allow_html=True)
+        st.markdown(f"<hr>", unsafe_allow_html=True)
     st.stop()
 
 # ── UPLOAD ───────────────────────────────────────────────────────────────────
