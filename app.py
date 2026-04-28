@@ -136,11 +136,18 @@ def delete_upload(upload_id):
 def parse_base_razao(file_bytes, filename):
     """Parse planilha BASE RAZÃO — formato transacional diário."""
     try:
-        xls = pd.ExcelFile(_io.BytesIO(file_bytes), engine='xlrd')
-        if 'BASE RAZÃO' in xls.sheet_names:
-            df = pd.read_excel(xls, sheet_name='BASE RAZÃO')
+        buf = _io.BytesIO(file_bytes)
+        # Detect engine by filename extension
+        if filename.lower().endswith('.xls'):
+            engine = 'xlrd'
         else:
-            df = pd.read_excel(xls, sheet_name=0)
+            engine = 'openpyxl'
+        
+        xls = pd.ExcelFile(buf, engine=engine)
+        if 'BASE RAZÃO' in xls.sheet_names:
+            df = pd.read_excel(xls, sheet_name='BASE RAZÃO', engine=engine)
+        else:
+            df = pd.read_excel(xls, sheet_name=0, engine=engine)
 
         df.columns = [str(c).strip().upper() for c in df.columns]
         # Normalize columns
