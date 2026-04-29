@@ -49,18 +49,18 @@ def fmt_short(v):
         return fmt_brl(v)
     except: return "—"
 
-# Classify centro de custo
+# Classify centro de custo — names must match filter dropdown options exactly
 def classify_curso(nome):
     n = str(nome).upper().strip()
-    if 'CAMB' in n: return 'CAMB'
-    if 'PÓS' in n or 'POS ' in n: return 'PÓS-GRADUAÇÃO'
-    if n in ['GERAL','AESVISA','CLÍNICA DE SAÚDE ACOLHE','CLÍNICA']: return 'OUTROS'
-    return 'GRADUAÇÃO'
+    if 'CAMB' in n: return 'Mensalidades CAMB'
+    if 'PÓS' in n or 'POS ' in n or 'POS-' in n: return 'Mensalidades Pós-Graduação'
+    if n in ['GERAL', 'AESVISA', 'CLÍNICA DE SAÚDE ACOLHE', 'CLÍNICA']: return 'Outras Receitas'
+    return 'Mensalidades Graduação'
 
 def classify_tipo(tipo):
     t = str(tipo).upper().strip()
     if 'MENSALIDADE' in t or 'MENSALIDADES' in t: return 'Mensalidades'
-    if 'TAXA' in t: return 'Taxas'
+    if 'TAXA' in t: return 'Taxas e emolumentos'
     return 'Outras Receitas'
 
 # ─── DB ──────────────────────────────────────────────────────────────────────
@@ -170,28 +170,21 @@ def delete_comparativo(comp_id):
     except: return False
 
 # ─── PARSER NOVO (BASE RAZÃO) ────────────────────────────────────────────────
-@st.cache_data
+@st.cache_data(show_spinner="Processando planilha...", max_entries=5)
 def parse_base_razao(file_bytes, filename):
     """Parse planilha BASE RAZÃO — formato transacional diário."""
     try:
         buf = _io.BytesIO(file_bytes)
-        # Detect engine by filename extension
-        if filename.lower().endswith('.xls'):
-            engine = 'xlrd'
-        else:
-            engine = 'openpyxl'
-        
+        engine = 'xlrd' if filename.lower().endswith('.xls') else 'openpyxl'
+
         xls = pd.ExcelFile(buf, engine=engine)
-        if 'BASE RAZÃO' in xls.sheet_names:
-            df = pd.read_excel(xls, sheet_name='BASE RAZÃO', engine=engine)
-        else:
-            df = pd.read_excel(xls, sheet_name=0, engine=engine)
+        sheet_name = 'BASE RAZÃO' if 'BASE RAZÃO' in xls.sheet_names else 0
+        df = pd.read_excel(xls, sheet_name=sheet_name, engine=engine)
 
         df.columns = [str(c).strip().upper() for c in df.columns]
-        # Normalize columns
         col_map = {}
         for c in df.columns:
-            cu = str(c).upper()
+            cu = c.upper()
             if cu == 'DATA': col_map[c] = 'DATA'
             elif cu == 'TIPO DE RECEITA': col_map[c] = 'TIPO'
             elif cu == 'CENTRO DE CUSTO': col_map[c] = 'CENTRO'
@@ -201,31 +194,32 @@ def parse_base_razao(file_bytes, filename):
         if 'DATA' not in df.columns or 'VALOR' not in df.columns:
             return None, None
 
-        df['DATA']   = pd.to_datetime(df['DATA'], errors='coerce')
-        df['VALOR']  = pd.to_numeric(df['VALOR'], errors='coerce').fillna(0)
+        df['DATA']  = pd.to_datetime(df['DATA'], errors='coerce')
+        df['VALOR'] = pd.to_numeric(df['VALOR'], errors='coerce').fillna(0)
+        df = df[df['VALOR'] != 0].copy()
         df['MES']    = df['DATA'].dt.month
         df['ANO']    = df['DATA'].dt.year
         df['CENTRO'] = df['CENTRO'].fillna('GERAL').str.strip()
         df['TIPO']   = df['TIPO'].fillna('Mensalidades').apply(classify_tipo)
         df['CATEGORIA'] = df['CENTRO'].apply(classify_curso)
-        # Normalize strings to avoid encoding mismatches
-        df['CATEGORIA'] = df['CATEGORIA'].str.strip()
-        df['TIPO'] = df['TIPO'].str.strip()
 
         anos = sorted(df['ANO'].dropna().unique().astype(int).tolist())
 
-        # Build records
-        records = []
-        for (centro, tipo, cat, ano, mes), grp in df.groupby(['CENTRO','TIPO','CATEGORIA','ANO','MES']):
-            records.append({
-                'centro': centro,
-                'tipo': tipo,
-                'categoria': cat,
-                'ano': int(ano),
-                'mes': int(mes),
-                'mes_nome': MES_MAP.get(int(mes), ''),
-                'valor': float(grp['VALOR'].sum())
-            })
+        # Build records via groupby (much faster than iterating)
+        grp = (
+            df.groupby(['CENTRO','TIPO','CATEGORIA','ANO','MES'], sort=False)['VALOR']
+            .sum()
+            .reset_index()
+        )
+        grp['mes_nome'] = grp['MES'].map(MES_MAP)
+        records = [
+            {
+                'centro': row.CENTRO, 'tipo': row.TIPO, 'categoria': row.CATEGORIA,
+                'ano': int(row.ANO), 'mes': int(row.MES),
+                'mes_nome': row.mes_nome, 'valor': float(row.VALOR)
+            }
+            for row in grp.itertuples(index=False)
+        ]
 
         return records, anos
     except Exception as e:
@@ -519,9 +513,9 @@ if st.session_state.aba == "comparativo":
         ano_a = str(anos_a[-1] if anos_a else "A")
         ano_b = str(anos_b[-1] if anos_b else "B")
 
-        CATS = ["Mensalidades Graduação","Mensalidades Pós-Graduação","Mensalidades CAMB","Mensalidades Taxas","Outras Receitas"]
+        CATS = ["Mensalidades Graduação","Mensalidades Pós-Graduação","Mensalidades CAMB","Outras Receitas"]
         PAL  = {"Mensalidades Graduação":"#F26522","Mensalidades Pós-Graduação":"#FF8C42",
-                "Mensalidades CAMB":"#C84E00","Mensalidades Taxas":"#A03C00","Outras Receitas":"#FFB380"}
+                "Mensalidades CAMB":"#C84E00","Outras Receitas":"#FFB380"}
 
         tot_a = df_a["valor"].sum()
         tot_b = df_b["valor"].sum()
@@ -877,7 +871,7 @@ with ff1:
     f_ano = st.selectbox("Ano", anos_opts)
 
 with ff2:
-    cats = ["Todas","Mensalidades Graduação","Mensalidades Pós-Graduação","Mensalidades CAMB","Mensalidades Taxas","Outras Receitas"]
+    cats = ["Todas","Mensalidades Graduação","Mensalidades Pós-Graduação","Mensalidades CAMB","Outras Receitas"]
     f_cat = st.selectbox("Categoria", cats)
 
 with ff3:
@@ -988,7 +982,7 @@ with g2:
     st.markdown(f'<p style="font-size:13px;font-weight:700;color:{TEXT};margin-bottom:4px;">Distribuição por Categoria</p>', unsafe_allow_html=True)
     by_cat = fdf.groupby('categoria')['valor'].sum().reset_index()
     if not by_cat.empty:
-        pal = {"Mensalidades Graduação":"#F26522","Mensalidades CAMB":"#C84E00","Mensalidades Pós-Graduação":"#FF8C42","Outras Receitas":"#FFD5B8","Mensalidades Taxas":"#A03C00","Mensalidades":"#FF8C42"}
+        pal = {"Mensalidades Graduação":"#F26522","Mensalidades CAMB":"#C84E00","Mensalidades Pós-Graduação":"#FF8C42","Outras Receitas":"#FFD5B8","Mensalidades":"#FF8C42"}
         clrs_pie = [pal.get(c,"#FF8C42") for c in by_cat['categoria']]
         fig2 = go.Figure(go.Pie(
             labels=by_cat['categoria'], values=by_cat['valor'],
@@ -1111,7 +1105,7 @@ with ex1:
                 yaxis=dict(tickfont=dict(size=10)), xaxis=dict(tickformat=",.0f", tickprefix="R$"))
 
             by_cat2 = fdf.groupby('categoria')['valor'].sum().reset_index()
-            pal2 = {"Mensalidades Graduação":"#F26522","Mensalidades CAMB":"#C84E00","Mensalidades Pós-Graduação":"#FF8C42","Outras Receitas":"#FFD5B8","Mensalidades Taxas":"#A03C00"}
+            pal2 = {"Mensalidades Graduação":"#F26522","Mensalidades CAMB":"#C84E00","Mensalidades Pós-Graduação":"#FF8C42","Outras Receitas":"#FFD5B8"}
             fp = go.Figure(go.Pie(labels=by_cat2['categoria'], values=by_cat2['valor'], hole=.5,
                 marker_colors=[pal2.get(c,"#FF8C42") for c in by_cat2['categoria']],
                 hovertemplate="<b>%{label}</b><br>%{percent}<extra></extra>"))
@@ -1216,7 +1210,7 @@ with ex2:
                 yaxis=dict(tickfont=dict(size=10)), xaxis=dict(tickformat=",.0f"))
 
             by_cat3 = fdf.groupby('categoria')['valor'].sum().reset_index()
-            pal3 = {"Mensalidades Graduação":"#F26522","Mensalidades CAMB":"#C84E00","Mensalidades Pós-Graduação":"#FF8C42","Outras Receitas":"#FFD5B8","Mensalidades Taxas":"#A03C00"}
+            pal3 = {"Mensalidades Graduação":"#F26522","Mensalidades CAMB":"#C84E00","Mensalidades Pós-Graduação":"#FF8C42","Outras Receitas":"#FFD5B8"}
             fp2 = go.Figure(go.Pie(labels=by_cat3['categoria'], values=by_cat3['valor'], hole=.5,
                 marker_colors=[pal3.get(c,"#FF8C42") for c in by_cat3['categoria']]))
             fp2.update_layout(title="Distribuição", height=380, margin=dict(l=0,r=0,t=40,b=0),
