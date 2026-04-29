@@ -208,6 +208,9 @@ def parse_base_razao(file_bytes, filename):
         df['CENTRO'] = df['CENTRO'].fillna('GERAL').str.strip()
         df['TIPO']   = df['TIPO'].fillna('Mensalidades').apply(classify_tipo)
         df['CATEGORIA'] = df['CENTRO'].apply(classify_curso)
+        # Normalize strings to avoid encoding mismatches
+        df['CATEGORIA'] = df['CATEGORIA'].str.strip()
+        df['TIPO'] = df['TIPO'].str.strip()
 
         anos = sorted(df['ANO'].dropna().unique().astype(int).tolist())
 
@@ -891,8 +894,10 @@ with ff5:
 # Apply filters
 fdf = df.copy()
 if f_ano != "Todos os Anos":    fdf = fdf[fdf['ano'] == int(f_ano)]
-if f_cat != "Todas":            fdf = fdf[fdf['categoria'] == f_cat]
-if f_tipo != "Todos":           fdf = fdf[fdf['tipo'] == f_tipo]
+if f_cat != "Todas":
+    # Normalize for comparison to handle encoding issues
+    fdf = fdf[fdf['categoria'].str.strip() == f_cat.strip()]
+if f_tipo != "Todos":           fdf = fdf[fdf['tipo'].str.strip() == f_tipo.strip()]
 if f_mes != "Todos os Meses":   fdf = fdf[fdf['mes_nome'] == f_mes]
 if f_busca:                     fdf = fdf[fdf['centro'].str.contains(f_busca, case=False, na=False)]
 
@@ -915,16 +920,39 @@ maior_valor  = by_centro.max() if len(by_centro) else 0
 
 st.markdown("<br>", unsafe_allow_html=True)
 k1,k2,k3,k4,k5 = st.columns(5)
-kpis_data = [
-    (k1, "Total Geral", fmt_short(total_geral), f"{f_ano}" + (f" · {f_mes[:3].capitalize()}" if f_mes != 'Todos os Meses' else ""), True),
-    (k2, "Maior Receita", fmt_short(maior_valor), maior_centro[:28], False),
-    (k3, "Mensalidades CAMB", fmt_short(total_camb), "colégio aplicação", False),
-    (k4, "Taxas e Emolumentos", fmt_short(total_taxa), "taxas e emolumentos", False),
-    (k5, "Mensalidades Graduação", fmt_short(total_grad), "total graduação", False),
-]
-# Só mostra Pós se filtro de pós estiver ativo
+# Determine which KPIs to show based on filter
 if f_cat == "Mensalidades Pós-Graduação":
-    kpis_data[4] = (k5, "Mensalidades Pós-Grad.", fmt_short(total_pos), "total pós-grad", False)
+    kpis_data = [
+        (k1, "Total Pós-Grad.", fmt_short(total_geral), f"{f_ano}" + (f" · {f_mes[:3].capitalize()}" if f_mes != 'Todos os Meses' else ""), True),
+        (k2, "Cursos Pós", str(len(fdf['centro'].unique())), "centros ativos", False),
+        (k3, "Maior Pós", fmt_short(maior_valor), maior_centro[:28], False),
+        (k4, "Taxas Pós", fmt_short(taxas_df['valor'].sum() if not taxas_df.empty else 0), "taxas pós-grad", False),
+        (k5, "Mensalidades Pós", fmt_short(fdf[fdf['tipo']=='Mensalidades']['valor'].sum()), "mensalidades pós", False),
+    ]
+elif f_cat == "Mensalidades CAMB":
+    kpis_data = [
+        (k1, "Total CAMB", fmt_short(total_geral), f"{f_ano}" + (f" · {f_mes[:3].capitalize()}" if f_mes != 'Todos os Meses' else ""), True),
+        (k2, "Maior Receita", fmt_short(maior_valor), maior_centro[:28], False),
+        (k3, "Mensalidades", fmt_short(fdf[fdf['tipo']=='Mensalidades']['valor'].sum()), "mensalidades CAMB", False),
+        (k4, "Taxas CAMB", fmt_short(taxas_df['valor'].sum() if not taxas_df.empty else 0), "taxas CAMB", False),
+        (k5, "Outras CAMB", fmt_short(fdf[fdf['tipo']=='Outras Receitas']['valor'].sum()), "outras receitas", False),
+    ]
+elif f_cat == "Outras Receitas":
+    kpis_data = [
+        (k1, "Total Outras", fmt_short(total_geral), f"{f_ano}" + (f" · {f_mes[:3].capitalize()}" if f_mes != 'Todos os Meses' else ""), True),
+        (k2, "Maior Receita", fmt_short(maior_valor), maior_centro[:28], False),
+        (k3, "Centros", str(len(fdf['centro'].unique())), "centros ativos", False),
+        (k4, "Taxas", fmt_short(taxas_df['valor'].sum() if not taxas_df.empty else 0), "taxas", False),
+        (k5, "Mensalidades", fmt_short(fdf[fdf['tipo']=='Mensalidades']['valor'].sum()), "mensalidades", False),
+    ]
+else:
+    kpis_data = [
+        (k1, "Total Geral", fmt_short(total_geral), f"{f_ano}" + (f" · {f_mes[:3].capitalize()}" if f_mes != 'Todos os Meses' else ""), True),
+        (k2, "Maior Receita", fmt_short(maior_valor), maior_centro[:28], False),
+        (k3, "Mensalidades CAMB", fmt_short(total_camb), "colégio aplicação", False),
+        (k4, "Taxas e Emolumentos", fmt_short(total_taxa), "taxas e emolumentos", False),
+        (k5, "Graduação", fmt_short(total_grad), "total graduação", False),
+    ]
 
 for col, lbl, val, sub, hl in kpis_data:
     with col:
@@ -938,7 +966,7 @@ g1, g2 = st.columns(2)
 # Top 10 por centro (excluindo pós por padrão, a menos que filtrado)
 with g1:
     st.markdown(f'<p style="font-size:13px;font-weight:700;color:{TEXT};margin-bottom:4px;">Top 10 Centros por Receita</p>', unsafe_allow_html=True)
-    show_df = fdf if f_cat != "Todas" else fdf[fdf['categoria'] != 'PÓS-GRADUAÇÃO']
+    show_df = fdf if f_cat != "Todas" else fdf[fdf['categoria'] != 'Mensalidades Pós-Graduação']
     top_c = show_df.groupby('centro')['valor'].sum().nlargest(10).reset_index()
     top_c = top_c.sort_values('valor', ascending=True)
     if not top_c.empty:
