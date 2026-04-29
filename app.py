@@ -41,13 +41,7 @@ def fmt_brl(v):
     except: return "—"
 
 def fmt_short(v):
-    if not v or v == 0: return "—"
-    try:
-        v = float(v)
-        if v >= 1e6: return f"R${v/1e6:.1f}M"
-        if v >= 1e3: return f"R${v/1e3:.0f}K"
-        return fmt_brl(v)
-    except: return "—"
+    return fmt_brl(v)
 
 # Classify centro de custo — names must match filter dropdown options exactly
 def classify_curso(nome):
