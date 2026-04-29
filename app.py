@@ -12,7 +12,7 @@ st.set_page_config(
     page_title="UNIVISA — Dashboard de Receitas",
     page_icon="🟠",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # ─── SUPABASE ────────────────────────────────────────────────────────────────
@@ -131,6 +131,44 @@ def delete_upload(upload_id):
         return True
     except: return False
 
+def save_comparativo(nome, ano_a, ano_b, resultado, uid):
+    try:
+        res = supabase.table("comparativos").insert({
+            "nome": nome,
+            "ano_a": str(ano_a),
+            "ano_b": str(ano_b),
+            "resultado": json.dumps(resultado, default=str),
+            "usuario_id": uid,
+            "criado_em": datetime.now().isoformat()
+        }).execute()
+        return res.data[0]["id"] if res.data else None
+    except Exception as e:
+        st.error(f"Erro ao salvar comparativo: {e}"); return None
+
+def get_comparativos(usuario_id=None, is_admin=False):
+    try:
+        query = supabase.table("comparativos").select("id,nome,ano_a,ano_b,criado_em,usuario_id")
+        if not is_admin and usuario_id:
+            query = query.eq("usuario_id", usuario_id)
+        return query.order("criado_em", desc=True).execute().data or []
+    except: return []
+
+def load_comparativo(comp_id):
+    try:
+        res = supabase.table("comparativos").select("*").eq("id", comp_id).execute()
+        if res.data:
+            r = res.data[0]
+            return json.loads(r["resultado"]), r["nome"], r["ano_a"], r["ano_b"]
+    except Exception as e:
+        st.error(f"Erro ao carregar: {e}")
+    return None, None, None, None
+
+def delete_comparativo(comp_id):
+    try:
+        supabase.table("comparativos").delete().eq("id", comp_id).execute()
+        return True
+    except: return False
+
 # ─── PARSER NOVO (BASE RAZÃO) ────────────────────────────────────────────────
 @st.cache_data
 def parse_base_razao(file_bytes, filename):
@@ -193,7 +231,7 @@ def parse_base_razao(file_bytes, filename):
 # ─── SESSION ─────────────────────────────────────────────────────────────────
 for k, v in [("user",None),("df_records",[]),("anos_disponiveis",[]),
              ("arquivo",None),("dark_mode",False),("aba","dashboard"),
-             ("last_file",None)]:
+             ("last_file",None),("comp_salvo",None),("comp_nome_salvo","")]:
     if k not in st.session_state:
         st.session_state[k] = v
 
@@ -224,9 +262,15 @@ section[data-testid="stSidebar"] p,section[data-testid="stSidebar"] span,section
 div[data-baseweb="input"] input,div[data-baseweb="select"] div,div[data-baseweb="textarea"] textarea{{background:{INP}!important;color:{TEXT}!important;border-color:{INPB}!important;}}
 .stButton>button{{background:rgba(242,101,34,.12)!important;color:#F26522!important;border:1.5px solid #F26522!important;border-radius:8px!important;font-family:'Sora',sans-serif!important;font-weight:600!important;transition:all .2s!important;}}
 .stButton>button:hover{{background:#F26522!important;color:white!important;}}
-details{{background:{BG3}!important;border:1px solid {BORD}!important;border-radius:10px!important;}}
-details summary{{color:{TEXT}!important;}}
-div[data-testid="stFileUploader"]{{background:{BG3}!important;border:2px dashed #F26522!important;border-radius:10px!important;}}
+/* Topbar action buttons - white style */
+div[data-testid="stHorizontalBlock"] > div:nth-child(-n+5) .stButton>button{{background:rgba(255,255,255,.1)!important;color:white!important;border:1px solid rgba(255,255,255,.3)!important;font-size:15px!important;padding:4px 10px!important;}}
+div[data-testid="stHorizontalBlock"] > div:nth-child(-n+5) .stButton>button:hover{{background:#F26522!important;border-color:#F26522!important;}}
+details{{background:white!important;border:1px solid {BORD}!important;border-radius:10px!important;}}
+details summary{{color:#111!important;font-weight:600!important;}}
+details>div{{background:white!important;}}
+div[data-testid="stFileUploader"]{{background:white!important;border:2px dashed #F26522!important;border-radius:10px!important;}}
+div[data-testid="stFileUploader"] *{{color:#111!important;background:white!important;}}
+div[data-testid="stFileUploader"] button{{background:#F26522!important;color:white!important;border:none!important;}}
 hr{{border-color:{BORD}!important;margin:6px 0 12px!important;}}
 div[data-testid="collapsedControl"]{{background:#F26522!important;border-radius:0 10px 10px 0!important;}}
 div[data-testid="collapsedControl"] svg{{fill:white!important;}}
@@ -326,6 +370,19 @@ with st.sidebar:
     else:
         st.markdown('<p style="font-size:12px;color:#AA6644;">Nenhuma salva ainda.</p>', unsafe_allow_html=True)
 
+    # Comparativos salvos na sidebar
+    comps_sb = get_comparativos(usuario_id=user["id"], is_admin=is_admin)
+    if comps_sb:
+        st.markdown('<div style="font-size:10px;font-weight:700;color:#F26522;text-transform:uppercase;letter-spacing:.8px;margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid rgba(242,101,34,.2);">📊 Comparativos Salvos</div>', unsafe_allow_html=True)
+        for cp_sb in comps_sb:
+            if st.button(f"📊 {cp_sb['nome'][:22]}", key=f"sb_comp_{cp_sb['id']}", use_container_width=True):
+                res_cp, nome_cp, ano_a_cp, ano_b_cp = load_comparativo(cp_sb["id"])
+                if res_cp:
+                    st.session_state.comp_salvo = res_cp
+                    st.session_state.comp_nome_salvo = nome_cp
+                    st.session_state.aba = "comparativo"
+                    st.rerun()
+
     if is_admin:
         st.markdown('<div style="font-size:10px;font-weight:700;color:#F26522;text-transform:uppercase;letter-spacing:.8px;margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid rgba(242,101,34,.2);">👤 Usuários</div>', unsafe_allow_html=True)
         with st.expander("➕ Adicionar"):
@@ -396,6 +453,53 @@ if st.session_state.aba == "comparativo":
     with col_b:
         st.markdown(f'<div style="font-size:12px;font-weight:700;color:{TEXT2};text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">📁 Planilha B (ex: 2025)</div>', unsafe_allow_html=True)
         file_b = st.file_uploader("Planilha B", type=["xls","xlsx"], key="comp_b", label_visibility="collapsed")
+
+    # Show saved comparativo if loaded from sidebar
+    if st.session_state.get("comp_salvo") and not (file_a and file_b):
+        res_loaded = st.session_state.comp_salvo
+        st.markdown(f'<div style="background:{BG3};border:1.5px solid {BORD};border-radius:12px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:10px;"><span style="font-size:20px;">📊</span><div><div style="font-weight:700;color:{TEXT};">{st.session_state.comp_nome_salvo}</div><div style="font-size:12px;color:{TEXT2};">Comparativo salvo · {res_loaded.get("ano_a")} vs {res_loaded.get("ano_b")} · Clique em Limpar para fazer novo</div></div></div>', unsafe_allow_html=True)
+        c_limpar, _ = st.columns([1,5])
+        with c_limpar:
+            if st.button("🗑 Limpar", key="limpar_comp_salvo"):
+                st.session_state.comp_salvo = None
+                st.session_state.comp_nome_salvo = ""
+                st.rerun()
+        # Display saved results
+        r = res_loaded
+        tot_a_s = r.get("tot_a",0); tot_b_s = r.get("tot_b",0)
+        ano_a_s = r.get("ano_a","A"); ano_b_s = r.get("ano_b","B")
+        var_s = r.get("var_total",0); melhor_s = r.get("melhor_total","—")
+        cat_data_s = r.get("cat_data",[])
+        rows_tab_s = r.get("rows_tab",[])
+        vm_a_s = r.get("vm_a",[]); vm_b_s = r.get("vm_b",[])
+
+        k1s,k2s,k3s,k4s = st.columns(4)
+        with k1s: st.markdown(f'<div class="kpi-card hl"><div class="kpi-lbl">Total {ano_a_s}</div><div class="kpi-val">{fmt_short(tot_a_s)}</div><div class="kpi-sub">{r.get("label_a","")}</div></div>', unsafe_allow_html=True)
+        with k2s: st.markdown(f'<div class="kpi-card hl" style="background:#C84E00!important;border-color:#C84E00!important;"><div class="kpi-lbl">Total {ano_b_s}</div><div class="kpi-val">{fmt_short(tot_b_s)}</div><div class="kpi-sub">{r.get("label_b","")}</div></div>', unsafe_allow_html=True)
+        with k3s:
+            sinal_s = "▲" if var_s >= 0 else "▼"; cor_s = "#27AE60" if var_s >= 0 else "#E74C3C"
+            st.markdown(f'<div class="kpi-card"><div class="kpi-lbl">Variação</div><div class="kpi-val" style="color:{cor_s};">{sinal_s} {abs(var_s):.1f}%</div><div class="kpi-sub">de {ano_a_s} para {ano_b_s}</div></div>', unsafe_allow_html=True)
+        with k4s: st.markdown(f'<div class="kpi-card"><div class="kpi-lbl">Melhor Ano</div><div class="kpi-val">{melhor_s}</div><div class="kpi-sub">maior receita total</div></div>', unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        if rows_tab_s:
+            st.markdown(f'<p style="font-size:13px;font-weight:700;color:{TEXT};margin-bottom:8px;">Tabela Consolidada</p>', unsafe_allow_html=True)
+            st.dataframe(pd.DataFrame(rows_tab_s), use_container_width=True, hide_index=True)
+
+        if vm_a_s and vm_b_s:
+            st.markdown(f'<p style="font-size:13px;font-weight:700;color:{TEXT};margin:12px 0 4px;">Evolução Mensal — {ano_a_s} vs {ano_b_s}</p>', unsafe_allow_html=True)
+            fig_ev_s = go.Figure()
+            fig_ev_s.add_trace(go.Scatter(x=MESES_SH, y=vm_a_s, mode="lines+markers", name=ano_a_s,
+                line=dict(color="#F26522",width=2.5), marker=dict(size=6)))
+            fig_ev_s.add_trace(go.Scatter(x=MESES_SH, y=vm_b_s, mode="lines+markers", name=ano_b_s,
+                line=dict(color="#1A7A3A",width=2.5), marker=dict(size=6)))
+            fig_ev_s.update_layout(height=200, margin=dict(l=0,r=0,t=0,b=0),
+                plot_bgcolor=CHART, paper_bgcolor=CHART, font_family="Sora",
+                legend=dict(font=dict(size=10,color=TEXT2)),
+                xaxis=dict(gridcolor=GRID, tickfont=dict(size=11,color=TEXT2)),
+                yaxis=dict(gridcolor=GRID, tickfont=dict(size=10,color=TEXT2)))
+            st.plotly_chart(fig_ev_s, use_container_width=True, config={"displayModeBar":False}, key="ev_salvo")
+        st.stop()
 
     if file_a and file_b:
         with st.spinner("Processando planilhas..."):
@@ -589,6 +693,49 @@ if st.session_state.aba == "comparativo":
         })
         st.dataframe(pd.DataFrame(rows_tab), use_container_width=True, hide_index=True)
 
+        # ── SALVAR COMPARATIVO ────────────────────────────────────────────────
+        st.markdown(f'<p style="font-size:13px;font-weight:700;color:{TEXT};margin:20px 0 8px;">💾 Salvar este Comparativo</p>', unsafe_allow_html=True)
+        sv1, sv2 = st.columns([3,1])
+        with sv1:
+            nome_comp = st.text_input("Nome do comparativo", placeholder=f"Ex: Comparativo {ano_a} vs {ano_b}", key="comp_nome_input")
+        with sv2:
+            st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
+            if st.button("💾 Salvar", use_container_width=True, key="btn_salvar_comp"):
+                if nome_comp:
+                    resultado_salvar = {
+                        "ano_a": ano_a, "ano_b": ano_b,
+                        "label_a": label_a, "label_b": label_b,
+                        "tot_a": tot_a, "tot_b": tot_b,
+                        "var_total": var_total, "melhor_total": melhor_total,
+                        "cat_data": cat_data,
+                        "rows_tab": rows_tab,
+                        "vm_a": [df_a[df_a["mes"]==m]["valor"].sum() for m in range(1,13)],
+                        "vm_b": [df_b[df_b["mes"]==m]["valor"].sum() for m in range(1,13)],
+                    }
+                    uid_comp = save_comparativo(nome_comp, ano_a, ano_b, resultado_salvar, user["id"])
+                    if uid_comp:
+                        st.success(f"✅ Comparativo '{nome_comp}' salvo com sucesso!")
+                else:
+                    st.error("Digite um nome para o comparativo.")
+
+        # ── COMPARATIVOS SALVOS ───────────────────────────────────────────────
+        comps_salvos = get_comparativos(usuario_id=user["id"], is_admin=is_admin)
+        if comps_salvos:
+            st.markdown(f'<p style="font-size:13px;font-weight:700;color:{TEXT};margin:20px 0 8px;">📂 Comparativos Salvos</p>', unsafe_allow_html=True)
+            for cp in comps_salvos:
+                cc1, cc2, cc3, cc4 = st.columns([3,1.5,1.5,1])
+                with cc1:
+                    st.markdown(f'<span style="font-weight:600;color:{TEXT};">📊 {cp["nome"]}</span>', unsafe_allow_html=True)
+                with cc2:
+                    st.markdown(f'<span style="color:{TEXT2};font-size:12px;">{cp["ano_a"]} vs {cp["ano_b"]}</span>', unsafe_allow_html=True)
+                with cc3:
+                    data_cp = cp.get("criado_em","")[:10] if cp.get("criado_em") else "—"
+                    st.markdown(f'<span style="color:{TEXT2};font-size:12px;">🕐 {data_cp}</span>', unsafe_allow_html=True)
+                with cc4:
+                    if st.button("🗑", key=f"del_comp_{cp['id']}"):
+                        delete_comparativo(cp["id"]); st.rerun()
+                st.markdown("<hr>", unsafe_allow_html=True)
+
     else:
         st.markdown(f"""
         <div style="text-align:center;padding:60px 20px;background:{BG3};border-radius:14px;border:1.5px dashed {BORD};margin-top:12px;">
@@ -732,7 +879,7 @@ with ff2:
     f_cat = st.selectbox("Categoria", cats)
 
 with ff3:
-    tipos = ["Todos","Mensalidades","Taxas","Outras Receitas"]
+    tipos = ["Todos","Mensalidades","Taxas","Outros"]
     f_tipo = st.selectbox("Tipo de Receita", tipos)
 
 with ff4:
@@ -755,7 +902,7 @@ total_geral = fdf['valor'].sum()
 grad_df  = fdf[fdf['categoria']=='Mensalidades Graduação']
 camb_df  = fdf[fdf['categoria']=='Mensalidades CAMB']
 pos_df   = fdf[fdf['categoria']=='Mensalidades Pós-Graduação']
-taxas_df = fdf[fdf['tipo']=='Mensalidades Taxas']
+taxas_df = fdf[fdf['tipo']=='Taxas']
 
 total_grad = grad_df['valor'].sum()
 total_camb = camb_df['valor'].sum()
@@ -913,7 +1060,7 @@ if len(anos_disp) > 1 and f_ano == "Todos os Anos":
             'Mensalidades Graduação': fmt_brl(dfa[dfa['categoria']=='Mensalidades Graduação']['valor'].sum()),
             'Mensalidades CAMB': fmt_brl(dfa[dfa['categoria']=='Mensalidades CAMB']['valor'].sum()),
             'Mensalidades Pós-Grad.': fmt_brl(dfa[dfa['categoria']=='Mensalidades Pós-Graduação']['valor'].sum()),
-            'Taxas': fmt_brl(dfa[dfa['tipo']=='Mensalidades Taxas']['valor'].sum()),
+            'Taxas': fmt_brl(dfa[dfa['tipo']=='Taxas']['valor'].sum()),
         })
     st.dataframe(pd.DataFrame(comp_data), use_container_width=True, hide_index=True)
 
