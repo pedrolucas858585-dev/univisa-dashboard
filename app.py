@@ -508,7 +508,7 @@ with ff1:
     f_ano = st.selectbox("Ano", anos_opts)
 
 with ff2:
-    cats = ["Todas","GRADUAÇÃO","PÓS-GRADUAÇÃO","CAMB","OUTROS"]
+    cats = ["Todas","Mensalidades Graduação","Mensalidades Pós-Graduação","Mensalidades CAMB","Mensalidades Taxas","Outras Receitas"]
     f_cat = st.selectbox("Categoria", cats)
 
 with ff3:
@@ -532,10 +532,10 @@ if f_busca:                     fdf = fdf[fdf['centro'].str.contains(f_busca, ca
 
 # ── KPIs ─────────────────────────────────────────────────────────────────────
 total_geral = fdf['valor'].sum()
-grad_df  = fdf[fdf['categoria']=='GRADUAÇÃO']
-camb_df  = fdf[fdf['categoria']=='CAMB']
-pos_df   = fdf[fdf['categoria']=='PÓS-GRADUAÇÃO']
-taxas_df = fdf[fdf['tipo']=='Taxas']
+grad_df  = fdf[fdf['categoria']=='Mensalidades Graduação']
+camb_df  = fdf[fdf['categoria']=='Mensalidades CAMB']
+pos_df   = fdf[fdf['categoria']=='Mensalidades Pós-Graduação']
+taxas_df = fdf[fdf['tipo']=='Mensalidades Taxas']
 
 total_grad = grad_df['valor'].sum()
 total_camb = camb_df['valor'].sum()
@@ -554,11 +554,11 @@ kpis_data = [
     (k2, "Maior Receita", fmt_short(maior_valor), maior_centro[:28], False),
     (k3, "Mensalidades CAMB", fmt_short(total_camb), "colégio aplicação", False),
     (k4, "Mensalidades Taxas", fmt_short(total_taxa), "taxas e emolumentos", False),
-    (k5, "Graduação", fmt_short(total_grad), "total graduação", False),
+    (k5, "Mensalidades Graduação", fmt_short(total_grad), "total graduação", False),
 ]
 # Só mostra Pós se filtro de pós estiver ativo
-if f_cat == "PÓS-GRADUAÇÃO":
-    kpis_data[4] = (k5, "Pós-Graduação", fmt_short(total_pos), "total pós-grad", False)
+if f_cat == "Mensalidades Pós-Graduação":
+    kpis_data[4] = (k5, "Mensalidades Pós-Grad.", fmt_short(total_pos), "total pós-grad", False)
 
 for col, lbl, val, sub, hl in kpis_data:
     with col:
@@ -594,7 +594,7 @@ with g2:
     st.markdown(f'<p style="font-size:13px;font-weight:700;color:{TEXT};margin-bottom:4px;">Distribuição por Categoria</p>', unsafe_allow_html=True)
     by_cat = fdf.groupby('categoria')['valor'].sum().reset_index()
     if not by_cat.empty:
-        pal = {"GRADUAÇÃO":"#F26522","CAMB":"#C84E00","PÓS-GRADUAÇÃO":"#FF8C42","OUTROS":"#FFD5B8","Outras Receitas":"#FFB380","Taxas":"#A03C00","Mensalidades":"#F26522"}
+        pal = {"Mensalidades Graduação":"#F26522","Mensalidades CAMB":"#C84E00","Mensalidades Pós-Graduação":"#FF8C42","Outras Receitas":"#FFD5B8","Mensalidades Taxas":"#A03C00","Mensalidades":"#FF8C42"}
         clrs_pie = [pal.get(c,"#FF8C42") for c in by_cat['categoria']]
         fig2 = go.Figure(go.Pie(
             labels=by_cat['categoria'], values=by_cat['valor'],
@@ -608,7 +608,7 @@ with g2:
         st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar":False})
 
 # Gráfico Pós-Graduação separado (só quando filtrado)
-if f_cat == "PÓS-GRADUAÇÃO" and not pos_df.empty:
+if f_cat == "Mensalidades Pós-Graduação" and not pos_df.empty:
     st.markdown(f'<p style="font-size:13px;font-weight:700;color:{TEXT};margin-bottom:4px;">Detalhamento — Pós-Graduação</p>', unsafe_allow_html=True)
     pos_det = pos_df.groupby('centro')['valor'].sum().reset_index().sort_values('valor', ascending=True)
     clrs_pos = ["#F26522","#FF8C42","#C84E00","#FFB380"]
@@ -625,7 +625,7 @@ if f_cat == "PÓS-GRADUAÇÃO" and not pos_df.empty:
     st.plotly_chart(fig_pos, use_container_width=True, config={"displayModeBar":False})
 
 # Gráfico CAMB separado
-if f_cat == "CAMB" and not camb_df.empty:
+if f_cat == "Mensalidades CAMB" and not camb_df.empty:
     st.markdown(f'<p style="font-size:13px;font-weight:700;color:{TEXT};margin-bottom:4px;">Detalhamento — CAMB por Tipo</p>', unsafe_allow_html=True)
     camb_det = camb_df.groupby('tipo')['valor'].sum().reset_index()
     fig_camb = go.Figure(go.Bar(
@@ -690,10 +690,10 @@ if len(anos_disp) > 1 and f_ano == "Todos os Anos":
         comp_data.append({
             'Ano': str(ano_c),
             'Total Geral': fmt_brl(dfa['valor'].sum()),
-            'Graduação': fmt_brl(dfa[dfa['categoria']=='GRADUAÇÃO']['valor'].sum()),
-            'CAMB': fmt_brl(dfa[dfa['categoria']=='CAMB']['valor'].sum()),
-            'Pós-Graduação': fmt_brl(dfa[dfa['categoria']=='PÓS-GRADUAÇÃO']['valor'].sum()),
-            'Taxas': fmt_brl(dfa[dfa['tipo']=='Taxas']['valor'].sum()),
+            'Mensalidades Graduação': fmt_brl(dfa[dfa['categoria']=='Mensalidades Graduação']['valor'].sum()),
+            'Mensalidades CAMB': fmt_brl(dfa[dfa['categoria']=='Mensalidades CAMB']['valor'].sum()),
+            'Mensalidades Pós-Grad.': fmt_brl(dfa[dfa['categoria']=='Mensalidades Pós-Graduação']['valor'].sum()),
+            'Taxas': fmt_brl(dfa[dfa['tipo']=='Mensalidades Taxas']['valor'].sum()),
         })
     st.dataframe(pd.DataFrame(comp_data), use_container_width=True, hide_index=True)
 
@@ -717,7 +717,7 @@ with ex1:
                 yaxis=dict(tickfont=dict(size=10)), xaxis=dict(tickformat=",.0f", tickprefix="R$"))
 
             by_cat2 = fdf.groupby('categoria')['valor'].sum().reset_index()
-            pal2 = {"GRADUAÇÃO":"#F26522","CAMB":"#C84E00","PÓS-GRADUAÇÃO":"#FF8C42","OUTROS":"#FFD5B8"}
+            pal2 = {"Mensalidades Graduação":"#F26522","Mensalidades CAMB":"#C84E00","Mensalidades Pós-Graduação":"#FF8C42","Outras Receitas":"#FFD5B8","Mensalidades Taxas":"#A03C00"}
             fp = go.Figure(go.Pie(labels=by_cat2['categoria'], values=by_cat2['valor'], hole=.5,
                 marker_colors=[pal2.get(c,"#FF8C42") for c in by_cat2['categoria']],
                 hovertemplate="<b>%{label}</b><br>%{percent}<extra></extra>"))
@@ -822,7 +822,7 @@ with ex2:
                 yaxis=dict(tickfont=dict(size=10)), xaxis=dict(tickformat=",.0f"))
 
             by_cat3 = fdf.groupby('categoria')['valor'].sum().reset_index()
-            pal3 = {"GRADUAÇÃO":"#F26522","CAMB":"#C84E00","PÓS-GRADUAÇÃO":"#FF8C42","OUTROS":"#FFD5B8"}
+            pal3 = {"Mensalidades Graduação":"#F26522","Mensalidades CAMB":"#C84E00","Mensalidades Pós-Graduação":"#FF8C42","Outras Receitas":"#FFD5B8","Mensalidades Taxas":"#A03C00"}
             fp2 = go.Figure(go.Pie(labels=by_cat3['categoria'], values=by_cat3['valor'], hole=.5,
                 marker_colors=[pal3.get(c,"#FF8C42") for c in by_cat3['categoria']]))
             fp2.update_layout(title="Distribuição", height=380, margin=dict(l=0,r=0,t=40,b=0),
