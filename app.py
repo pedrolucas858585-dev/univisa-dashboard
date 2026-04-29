@@ -374,7 +374,7 @@ with ba2:
     if st.button("🗄️", key="db_btn", help="Banco de Dados"):
         st.session_state.aba = "banco" if st.session_state.aba != "banco" else "dashboard"; st.rerun()
 with ba3:
-    if st.button("📊 Comparativo", key="comp_btn", help="Comparativo entre Anos"):
+    if st.button("📊", key="comp_btn", help="Comparativo entre Anos"):
         st.session_state.aba = "comparativo" if st.session_state.aba != "comparativo" else "dashboard"; st.rerun()
 with ba4:
     if is_admin and st.button("👤", key="usr_btn", help="Usuários"):
@@ -488,26 +488,38 @@ if st.session_state.aba == "comparativo":
         g1, g2 = st.columns(2)
         with g1:
             st.markdown(f'<p style="font-size:13px;font-weight:700;color:{TEXT};margin-bottom:4px;">Receita por Categoria — {ano_a} vs {ano_b}</p>', unsafe_allow_html=True)
-            cats_plot  = [cd["cat"] for cd in cat_data]
+            cats_plot   = [cd["cat"] for cd in cat_data]
             vals_a_plot = [cd["v_a"] for cd in cat_data]
             vals_b_plot = [cd["v_b"] for cd in cat_data]
+            # Color each bar by which year won
+            clrs_a = ["#F26522" if cd["v_a"]>=cd["v_b"] else "#FFCBA4" for cd in cat_data]
+            clrs_b = ["#1A7A3A" if cd["v_b"]>cd["v_a"] else "#A8D5B5" for cd in cat_data]
             fig_bar_comp = go.Figure()
-            fig_bar_comp.add_trace(go.Bar(name=ano_a, x=cats_plot, y=vals_a_plot,
-                marker_color="#F26522",
-                customdata=[fmt_brl(v) for v in vals_a_plot],
-                hovertemplate="<b>%{x}</b><br>%{customdata}<extra>"+ano_a+"</extra>"))
-            fig_bar_comp.add_trace(go.Bar(name=ano_b, x=cats_plot, y=vals_b_plot,
-                marker_color="#C84E00",
-                customdata=[fmt_brl(v) for v in vals_b_plot],
-                hovertemplate="<b>%{x}</b><br>%{customdata}<extra>"+ano_b+"</extra>"))
+            fig_bar_comp.add_trace(go.Bar(
+                name=f"🟠 {ano_a}", x=cats_plot, y=vals_a_plot,
+                marker_color=clrs_a,
+                customdata=[f"{fmt_brl(cd['v_a'])} {'🏆' if cd['v_a']>=cd['v_b'] else ''}" for cd in cat_data],
+                hovertemplate="<b>%{x}</b><br>%{customdata}<extra>"+ano_a+"</extra>"
+            ))
+            fig_bar_comp.add_trace(go.Bar(
+                name=f"🟢 {ano_b}", x=cats_plot, y=vals_b_plot,
+                marker_color=clrs_b,
+                customdata=[f"{fmt_brl(cd['v_b'])} {'🏆' if cd['v_b']>cd['v_a'] else ''}" for cd in cat_data],
+                hovertemplate="<b>%{x}</b><br>%{customdata}<extra>"+ano_b+"</extra>"
+            ))
             fig_bar_comp.update_layout(
-                barmode="group", height=320, margin=dict(l=0,r=0,t=0,b=0),
+                barmode="group", height=340, margin=dict(l=0,r=0,t=10,b=60),
                 plot_bgcolor=CHART, paper_bgcolor=CHART, font_family="Sora",
-                legend=dict(font=dict(size=11,color=TEXT2)),
-                xaxis=dict(tickfont=dict(size=9,color=TEXT2), gridcolor=GRID),
-                yaxis=dict(tickfont=dict(size=10,color=TEXT2), gridcolor=GRID)
+                legend=dict(font=dict(size=11,color=TEXT2), orientation="h", y=-0.18),
+                xaxis=dict(tickfont=dict(size=9,color=TEXT2), gridcolor=GRID, tickangle=-20),
+                yaxis=dict(tickfont=dict(size=10,color=TEXT2), gridcolor=GRID),
+                annotations=[
+                    dict(x=i, y=max(cd["v_a"],cd["v_b"])*1.05,
+                         text="🏆", showarrow=False, font=dict(size=14))
+                    for i, cd in enumerate(cat_data)
+                ]
             )
-            st.plotly_chart(fig_bar_comp, use_container_width=True, config={"displayModeBar":False})
+            st.plotly_chart(fig_bar_comp, use_container_width=True, config={"displayModeBar":False}, key="bar_comp")
 
         with g2:
             st.markdown(f'<p style="font-size:13px;font-weight:700;color:{TEXT};margin-bottom:4px;">Evolução Mensal — {ano_a} vs {ano_b}</p>', unsafe_allow_html=True)
@@ -529,7 +541,7 @@ if st.session_state.aba == "comparativo":
                 xaxis=dict(gridcolor=GRID, tickfont=dict(size=11,color=TEXT2)),
                 yaxis=dict(gridcolor=GRID, tickfont=dict(size=10,color=TEXT2))
             )
-            st.plotly_chart(fig_line_comp, use_container_width=True, config={"displayModeBar":False})
+            st.plotly_chart(fig_line_comp, use_container_width=True, config={"displayModeBar":False}, key="line_comp")
 
         # ── PIZZA LADO A LADO ─────────────────────────────────────────────────
         p1, p2 = st.columns(2)
@@ -541,7 +553,7 @@ if st.session_state.aba == "comparativo":
                 hovertemplate="<b>%{label}</b><br>%{percent}<extra></extra>"))
             fp_a.update_layout(height=280, margin=dict(l=0,r=0,t=0,b=0),
                 legend=dict(font=dict(size=9,color=TEXT2)), paper_bgcolor=CHART, font_family="Sora")
-            st.plotly_chart(fp_a, use_container_width=True, config={"displayModeBar":False})
+            st.plotly_chart(fp_a, use_container_width=True, config={"displayModeBar":False}, key="pie_comp_a")
 
         with p2:
             st.markdown(f'<p style="font-size:13px;font-weight:700;color:{TEXT};margin-bottom:4px;">Distribuição {ano_b}</p>', unsafe_allow_html=True)
@@ -551,7 +563,7 @@ if st.session_state.aba == "comparativo":
                 hovertemplate="<b>%{label}</b><br>%{percent}<extra></extra>"))
             fp_b.update_layout(height=280, margin=dict(l=0,r=0,t=0,b=0),
                 legend=dict(font=dict(size=9,color=TEXT2)), paper_bgcolor=CHART, font_family="Sora")
-            st.plotly_chart(fp_b, use_container_width=True, config={"displayModeBar":False})
+            st.plotly_chart(fp_b, use_container_width=True, config={"displayModeBar":False}, key="pie_comp_b")
 
         # ── TABELA CONSOLIDADA ────────────────────────────────────────────────
         st.markdown(f'<p style="font-size:13px;font-weight:700;color:{TEXT};margin:16px 0 8px;">Tabela Consolidada</p>', unsafe_allow_html=True)
