@@ -191,10 +191,11 @@ def parse_base_razao(file_bytes, filename):
         # Normalize columns
         col_map = {}
         for c in df.columns:
-            if 'DATA' in c: col_map[c] = 'DATA'
-            elif 'TIPO' in c: col_map[c] = 'TIPO'
-            elif 'CENTRO' in c and 'COD' not in c and 'CÓD' not in c: col_map[c] = 'CENTRO'
-            elif 'VALOR' in c: col_map[c] = 'VALOR'
+            cu = str(c).upper()
+            if cu == 'DATA': col_map[c] = 'DATA'
+            elif cu == 'TIPO DE RECEITA': col_map[c] = 'TIPO'
+            elif cu == 'CENTRO DE CUSTO': col_map[c] = 'CENTRO'
+            elif cu == 'VALOR': col_map[c] = 'VALOR'
         df = df.rename(columns=col_map)
 
         if 'DATA' not in df.columns or 'VALOR' not in df.columns:
@@ -260,11 +261,9 @@ header[data-testid="stHeader"]{{display:none!important;}}#MainMenu,footer{{displ
 section[data-testid="stSidebar"]{{background:linear-gradient(180deg,#1a0a00,#0d0500)!important;border-right:2.5px solid #F26522!important;}}
 section[data-testid="stSidebar"] p,section[data-testid="stSidebar"] span,section[data-testid="stSidebar"] label,section[data-testid="stSidebar"] div{{color:#FFD5B8!important;}}
 div[data-baseweb="input"] input,div[data-baseweb="select"] div,div[data-baseweb="textarea"] textarea{{background:{INP}!important;color:{TEXT}!important;border-color:{INPB}!important;}}
-.stButton>button{{background:rgba(242,101,34,.12)!important;color:#F26522!important;border:1.5px solid #F26522!important;border-radius:8px!important;font-family:'Sora',sans-serif!important;font-weight:600!important;transition:all .2s!important;}}
-.stButton>button:hover{{background:#F26522!important;color:white!important;}}
-/* Topbar action buttons - white style */
-div[data-testid="stHorizontalBlock"] > div:nth-child(-n+5) .stButton>button{{background:rgba(255,255,255,.1)!important;color:white!important;border:1px solid rgba(255,255,255,.3)!important;font-size:15px!important;padding:4px 10px!important;}}
-div[data-testid="stHorizontalBlock"] > div:nth-child(-n+5) .stButton>button:hover{{background:#F26522!important;border-color:#F26522!important;}}
+.stButton>button{{background:#FFF3EC!important;color:#F26522!important;border:1.5px solid #F26522!important;border-radius:8px!important;font-family:'Sora',sans-serif!important;font-weight:700!important;transition:all .2s!important;font-size:14px!important;}}
+.stButton>button:hover{{background:#F26522!important;color:white!important;transform:scale(1.03)!important;}}
+
 details{{background:white!important;border:1px solid {BORD}!important;border-radius:10px!important;}}
 details summary{{color:#111!important;font-weight:600!important;}}
 details>div{{background:white!important;}}
@@ -879,7 +878,7 @@ with ff2:
     f_cat = st.selectbox("Categoria", cats)
 
 with ff3:
-    tipos = ["Todos","Mensalidades","Taxas","Outros"]
+    tipos = ["Todos","Mensalidades","Taxas e emolumentos","Outras Receitas"]
     f_tipo = st.selectbox("Tipo de Receita", tipos)
 
 with ff4:
@@ -902,7 +901,7 @@ total_geral = fdf['valor'].sum()
 grad_df  = fdf[fdf['categoria']=='Mensalidades Graduação']
 camb_df  = fdf[fdf['categoria']=='Mensalidades CAMB']
 pos_df   = fdf[fdf['categoria']=='Mensalidades Pós-Graduação']
-taxas_df = fdf[fdf['tipo']=='Taxas']
+taxas_df = fdf[fdf['tipo']=='Taxas e emolumentos']
 
 total_grad = grad_df['valor'].sum()
 total_camb = camb_df['valor'].sum()
@@ -920,7 +919,7 @@ kpis_data = [
     (k1, "Total Geral", fmt_short(total_geral), f"{f_ano}" + (f" · {f_mes[:3].capitalize()}" if f_mes != 'Todos os Meses' else ""), True),
     (k2, "Maior Receita", fmt_short(maior_valor), maior_centro[:28], False),
     (k3, "Mensalidades CAMB", fmt_short(total_camb), "colégio aplicação", False),
-    (k4, "Mensalidades Taxas", fmt_short(total_taxa), "taxas e emolumentos", False),
+    (k4, "Taxas e Emolumentos", fmt_short(total_taxa), "taxas e emolumentos", False),
     (k5, "Mensalidades Graduação", fmt_short(total_grad), "total graduação", False),
 ]
 # Só mostra Pós se filtro de pós estiver ativo
@@ -1060,7 +1059,7 @@ if len(anos_disp) > 1 and f_ano == "Todos os Anos":
             'Mensalidades Graduação': fmt_brl(dfa[dfa['categoria']=='Mensalidades Graduação']['valor'].sum()),
             'Mensalidades CAMB': fmt_brl(dfa[dfa['categoria']=='Mensalidades CAMB']['valor'].sum()),
             'Mensalidades Pós-Grad.': fmt_brl(dfa[dfa['categoria']=='Mensalidades Pós-Graduação']['valor'].sum()),
-            'Taxas': fmt_brl(dfa[dfa['tipo']=='Taxas']['valor'].sum()),
+            'Taxas': fmt_brl(dfa[dfa['tipo']=='Taxas e emolumentos']['valor'].sum()),
         })
     st.dataframe(pd.DataFrame(comp_data), use_container_width=True, hide_index=True)
 
