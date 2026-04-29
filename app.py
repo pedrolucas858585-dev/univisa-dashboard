@@ -366,7 +366,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-ba1, ba2, ba3, ba4, _ = st.columns([0.18,0.18,0.18,0.18,5])
+ba1, ba2, ba3, ba4, ba5, _ = st.columns([0.18,0.18,0.22,0.18,0.18,4])
 with ba1:
     if st.button(tema_ico, key="tema_btn", help="Alternar tema"):
         st.session_state.dark_mode = not dark; st.rerun()
@@ -374,11 +374,219 @@ with ba2:
     if st.button("🗄️", key="db_btn", help="Banco de Dados"):
         st.session_state.aba = "banco" if st.session_state.aba != "banco" else "dashboard"; st.rerun()
 with ba3:
+    if st.button("📊 Comparativo", key="comp_btn", help="Comparativo entre Anos"):
+        st.session_state.aba = "comparativo" if st.session_state.aba != "comparativo" else "dashboard"; st.rerun()
+with ba4:
     if is_admin and st.button("👤", key="usr_btn", help="Usuários"):
         st.session_state.aba = "usuarios" if st.session_state.aba != "usuarios" else "dashboard"; st.rerun()
-with ba4:
+with ba5:
     if st.button("🚪", key="sair_top", help="Sair"):
         st.session_state.user = None; st.session_state.df_records = []; st.rerun()
+
+
+# ── ABA COMPARATIVO ───────────────────────────────────────────────────────────
+if st.session_state.aba == "comparativo":
+    st.markdown(f'<h3 style="color:{TEXT};margin:8px 0 4px;">📊 Comparativo entre Anos</h3>', unsafe_allow_html=True)
+    st.markdown(f'<p style="color:{TEXT2};font-size:13px;margin-bottom:20px;">Anexe duas planilhas para comparar o desempenho ano a ano por categoria.</p>', unsafe_allow_html=True)
+
+    col_a, col_b = st.columns(2)
+    with col_a:
+        st.markdown(f'<div style="font-size:12px;font-weight:700;color:{TEXT2};text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">📁 Planilha A (ex: 2024)</div>', unsafe_allow_html=True)
+        file_a = st.file_uploader("Planilha A", type=["xls","xlsx"], key="comp_a", label_visibility="collapsed")
+    with col_b:
+        st.markdown(f'<div style="font-size:12px;font-weight:700;color:{TEXT2};text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">📁 Planilha B (ex: 2025)</div>', unsafe_allow_html=True)
+        file_b = st.file_uploader("Planilha B", type=["xls","xlsx"], key="comp_b", label_visibility="collapsed")
+
+    if file_a and file_b:
+        with st.spinner("Processando planilhas..."):
+            recs_a, anos_a = parse_base_razao(file_a.read(), file_a.name)
+            recs_b, anos_b = parse_base_razao(file_b.read(), file_b.name)
+
+        if not recs_a or not recs_b:
+            st.error("Não foi possível processar uma das planilhas.")
+            st.stop()
+
+        df_a = pd.DataFrame(recs_a)
+        df_b = pd.DataFrame(recs_b)
+        label_a = file_a.name.replace(".xls","").replace(".xlsx","")[:20]
+        label_b = file_b.name.replace(".xls","").replace(".xlsx","")[:20]
+        ano_a = str(anos_a[-1] if anos_a else "A")
+        ano_b = str(anos_b[-1] if anos_b else "B")
+
+        CATS = ["Mensalidades Graduação","Mensalidades Pós-Graduação","Mensalidades CAMB","Mensalidades Taxas","Outras Receitas"]
+        PAL  = {"Mensalidades Graduação":"#F26522","Mensalidades Pós-Graduação":"#FF8C42",
+                "Mensalidades CAMB":"#C84E00","Mensalidades Taxas":"#A03C00","Outras Receitas":"#FFB380"}
+
+        tot_a = df_a["valor"].sum()
+        tot_b = df_b["valor"].sum()
+        melhor_total = ano_a if tot_a >= tot_b else ano_b
+        var_total = ((tot_b - tot_a) / tot_a * 100) if tot_a else 0
+
+        # ── KPI GERAL ─────────────────────────────────────────────────────────
+        st.markdown("<br>", unsafe_allow_html=True)
+        k1,k2,k3,k4 = st.columns(4)
+        with k1:
+            st.markdown(f'''<div class="kpi-card hl">
+              <div class="kpi-lbl">Total {ano_a}</div>
+              <div class="kpi-val">{fmt_short(tot_a)}</div>
+              <div class="kpi-sub">{label_a}</div>
+            </div>''', unsafe_allow_html=True)
+        with k2:
+            st.markdown(f'''<div class="kpi-card hl" style="background:#C84E00!important;border-color:#C84E00!important;">
+              <div class="kpi-lbl">Total {ano_b}</div>
+              <div class="kpi-val">{fmt_short(tot_b)}</div>
+              <div class="kpi-sub">{label_b}</div>
+            </div>''', unsafe_allow_html=True)
+        with k3:
+            sinal = "▲" if var_total >= 0 else "▼"
+            cor_var = "#27AE60" if var_total >= 0 else "#E74C3C"
+            st.markdown(f'''<div class="kpi-card">
+              <div class="kpi-lbl">Variação</div>
+              <div class="kpi-val" style="color:{cor_var};">{sinal} {abs(var_total):.1f}%</div>
+              <div class="kpi-sub">de {ano_a} para {ano_b}</div>
+            </div>''', unsafe_allow_html=True)
+        with k4:
+            st.markdown(f'''<div class="kpi-card">
+              <div class="kpi-lbl">Melhor Ano</div>
+              <div class="kpi-val">{melhor_total}</div>
+              <div class="kpi-sub">maior receita total</div>
+            </div>''', unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # ── COMPARATIVO POR CATEGORIA ─────────────────────────────────────────
+        st.markdown(f'<p style="font-size:13px;font-weight:700;color:{TEXT};margin-bottom:12px;">Comparativo por Categoria</p>', unsafe_allow_html=True)
+
+        cat_data = []
+        for cat in CATS:
+            v_a = df_a[df_a["categoria"]==cat]["valor"].sum()
+            v_b = df_b[df_b["categoria"]==cat]["valor"].sum()
+            if v_a == 0 and v_b == 0: continue
+            var = ((v_b-v_a)/v_a*100) if v_a else 0
+            melhor = ano_a if v_a >= v_b else ano_b
+            sinal = "▲" if var >= 0 else "▼"
+            cor = "#27AE60" if var >= 0 else "#E74C3C"
+            cat_data.append({"cat":cat,"v_a":v_a,"v_b":v_b,"var":var,"melhor":melhor,"sinal":sinal,"cor":cor})
+
+        for cd in cat_data:
+            c1,c2,c3,c4,c5 = st.columns([2.5,1.5,1.5,1.2,1])
+            with c1:
+                st.markdown(f'<span style="font-size:13px;font-weight:700;color:{TEXT};">● {cd["cat"]}</span>', unsafe_allow_html=True)
+            with c2:
+                st.markdown(f'<span style="font-size:12px;color:#F26522;font-weight:600;">{fmt_brl(cd["v_a"])}<br><span style="font-size:10px;color:{TEXT2};">{ano_a}</span></span>', unsafe_allow_html=True)
+            with c3:
+                st.markdown(f'<span style="font-size:12px;color:#C84E00;font-weight:600;">{fmt_brl(cd["v_b"])}<br><span style="font-size:10px;color:{TEXT2};">{ano_b}</span></span>', unsafe_allow_html=True)
+            with c4:
+                st.markdown(f'<span style="font-size:13px;font-weight:700;color:{cd["cor"]};">{cd["sinal"]} {abs(cd["var"]):.1f}%</span>', unsafe_allow_html=True)
+            with c5:
+                st.markdown(f'<span style="background:#F26522;color:white;font-size:10px;font-weight:700;padding:3px 8px;border-radius:12px;">🏆 {cd["melhor"]}</span>', unsafe_allow_html=True)
+            st.markdown(f"<hr style='margin:6px 0;border-color:{BORD};'>", unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # ── GRÁFICO BARRAS COMPARATIVO ────────────────────────────────────────
+        g1, g2 = st.columns(2)
+        with g1:
+            st.markdown(f'<p style="font-size:13px;font-weight:700;color:{TEXT};margin-bottom:4px;">Receita por Categoria — {ano_a} vs {ano_b}</p>', unsafe_allow_html=True)
+            cats_plot  = [cd["cat"] for cd in cat_data]
+            vals_a_plot = [cd["v_a"] for cd in cat_data]
+            vals_b_plot = [cd["v_b"] for cd in cat_data]
+            fig_bar_comp = go.Figure()
+            fig_bar_comp.add_trace(go.Bar(name=ano_a, x=cats_plot, y=vals_a_plot,
+                marker_color="#F26522",
+                customdata=[fmt_brl(v) for v in vals_a_plot],
+                hovertemplate="<b>%{x}</b><br>%{customdata}<extra>"+ano_a+"</extra>"))
+            fig_bar_comp.add_trace(go.Bar(name=ano_b, x=cats_plot, y=vals_b_plot,
+                marker_color="#C84E00",
+                customdata=[fmt_brl(v) for v in vals_b_plot],
+                hovertemplate="<b>%{x}</b><br>%{customdata}<extra>"+ano_b+"</extra>"))
+            fig_bar_comp.update_layout(
+                barmode="group", height=320, margin=dict(l=0,r=0,t=0,b=0),
+                plot_bgcolor=CHART, paper_bgcolor=CHART, font_family="Sora",
+                legend=dict(font=dict(size=11,color=TEXT2)),
+                xaxis=dict(tickfont=dict(size=9,color=TEXT2), gridcolor=GRID),
+                yaxis=dict(tickfont=dict(size=10,color=TEXT2), gridcolor=GRID)
+            )
+            st.plotly_chart(fig_bar_comp, use_container_width=True, config={"displayModeBar":False})
+
+        with g2:
+            st.markdown(f'<p style="font-size:13px;font-weight:700;color:{TEXT};margin-bottom:4px;">Evolução Mensal — {ano_a} vs {ano_b}</p>', unsafe_allow_html=True)
+            vm_a = [df_a[df_a["mes"]==m]["valor"].sum() for m in range(1,13)]
+            vm_b = [df_b[df_b["mes"]==m]["valor"].sum() for m in range(1,13)]
+            fig_line_comp = go.Figure()
+            fig_line_comp.add_trace(go.Scatter(x=MESES_SH, y=vm_a, mode="lines+markers",
+                name=ano_a, line=dict(color="#F26522",width=2.5), marker=dict(size=6),
+                customdata=[fmt_brl(v) for v in vm_a],
+                hovertemplate="<b>%{x}</b><br>%{customdata}<extra>"+ano_a+"</extra>"))
+            fig_line_comp.add_trace(go.Scatter(x=MESES_SH, y=vm_b, mode="lines+markers",
+                name=ano_b, line=dict(color="#C84E00",width=2.5), marker=dict(size=6),
+                customdata=[fmt_brl(v) for v in vm_b],
+                hovertemplate="<b>%{x}</b><br>%{customdata}<extra>"+ano_b+"</extra>"))
+            fig_line_comp.update_layout(
+                height=320, margin=dict(l=0,r=0,t=0,b=0),
+                plot_bgcolor=CHART, paper_bgcolor=CHART, font_family="Sora",
+                legend=dict(font=dict(size=11,color=TEXT2)),
+                xaxis=dict(gridcolor=GRID, tickfont=dict(size=11,color=TEXT2)),
+                yaxis=dict(gridcolor=GRID, tickfont=dict(size=10,color=TEXT2))
+            )
+            st.plotly_chart(fig_line_comp, use_container_width=True, config={"displayModeBar":False})
+
+        # ── PIZZA LADO A LADO ─────────────────────────────────────────────────
+        p1, p2 = st.columns(2)
+        with p1:
+            st.markdown(f'<p style="font-size:13px;font-weight:700;color:{TEXT};margin-bottom:4px;">Distribuição {ano_a}</p>', unsafe_allow_html=True)
+            by_cat_a = df_a.groupby("categoria")["valor"].sum().reset_index()
+            fp_a = go.Figure(go.Pie(labels=by_cat_a["categoria"], values=by_cat_a["valor"], hole=.5,
+                marker_colors=[PAL.get(c,"#FFB380") for c in by_cat_a["categoria"]],
+                hovertemplate="<b>%{label}</b><br>%{percent}<extra></extra>"))
+            fp_a.update_layout(height=280, margin=dict(l=0,r=0,t=0,b=0),
+                legend=dict(font=dict(size=9,color=TEXT2)), paper_bgcolor=CHART, font_family="Sora")
+            st.plotly_chart(fp_a, use_container_width=True, config={"displayModeBar":False})
+
+        with p2:
+            st.markdown(f'<p style="font-size:13px;font-weight:700;color:{TEXT};margin-bottom:4px;">Distribuição {ano_b}</p>', unsafe_allow_html=True)
+            by_cat_b = df_b.groupby("categoria")["valor"].sum().reset_index()
+            fp_b = go.Figure(go.Pie(labels=by_cat_b["categoria"], values=by_cat_b["valor"], hole=.5,
+                marker_colors=[PAL.get(c,"#FFB380") for c in by_cat_b["categoria"]],
+                hovertemplate="<b>%{label}</b><br>%{percent}<extra></extra>"))
+            fp_b.update_layout(height=280, margin=dict(l=0,r=0,t=0,b=0),
+                legend=dict(font=dict(size=9,color=TEXT2)), paper_bgcolor=CHART, font_family="Sora")
+            st.plotly_chart(fp_b, use_container_width=True, config={"displayModeBar":False})
+
+        # ── TABELA CONSOLIDADA ────────────────────────────────────────────────
+        st.markdown(f'<p style="font-size:13px;font-weight:700;color:{TEXT};margin:16px 0 8px;">Tabela Consolidada</p>', unsafe_allow_html=True)
+        rows_tab = []
+        for cat in CATS:
+            v_a2 = df_a[df_a["categoria"]==cat]["valor"].sum()
+            v_b2 = df_b[df_b["categoria"]==cat]["valor"].sum()
+            if v_a2 == 0 and v_b2 == 0: continue
+            var2 = ((v_b2-v_a2)/v_a2*100) if v_a2 else 0
+            rows_tab.append({
+                "Categoria": cat,
+                f"{ano_a}": fmt_brl(v_a2),
+                f"{ano_b}": fmt_brl(v_b2),
+                "Variação": f"{'▲' if var2>=0 else '▼'} {abs(var2):.1f}%",
+                "Melhor Ano": f"🏆 {ano_a if v_a2>=v_b2 else ano_b}"
+            })
+        rows_tab.append({
+            "Categoria": "TOTAL GERAL",
+            f"{ano_a}": fmt_brl(tot_a),
+            f"{ano_b}": fmt_brl(tot_b),
+            "Variação": f"{'▲' if var_total>=0 else '▼'} {abs(var_total):.1f}%",
+            "Melhor Ano": f"🏆 {melhor_total}"
+        })
+        st.dataframe(pd.DataFrame(rows_tab), use_container_width=True, hide_index=True)
+
+    else:
+        st.markdown(f"""
+        <div style="text-align:center;padding:60px 20px;background:{BG3};border-radius:14px;border:1.5px dashed {BORD};margin-top:12px;">
+          <div style="font-size:48px;margin-bottom:12px;">📊</div>
+          <p style="font-size:15px;font-weight:600;color:{TEXT};">Anexe duas planilhas acima para iniciar o comparativo</p>
+          <p style="font-size:13px;color:{TEXT2};margin-top:6px;">Suporta arquivos .xls e .xlsx no formato BASE RAZÃO UNIVISA</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.stop()
 
 # ── ABA BANCO ────────────────────────────────────────────────────────────────
 if st.session_state.aba == "banco":
